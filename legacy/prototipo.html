@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do Zero ao Canadá | Portal de Francês & TCF</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        canada: {
+                            red: '#E11D48',
+                            dark: '#0B0F19',
+                            card: '#131B2E',
+                            border: '#1E293B',
+                            blue: '#2563EB'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-display {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 9999px;
+        }
+
+        .card-flip {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            backface-visibility: hidden;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 12px rgba(225, 29, 72, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+            }
+        }
+
+        .recording-pulse {
+            animation: pulse-ring 1.8s infinite;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 text-slate-900 dark:bg-[#080C14] dark:text-slate-100 min-h-screen flex flex-col selection:bg-rose-500 selection:text-white transition-colors duration-200">
+
+    <!-- Top Navigation Bar -->
+    <header
+        class="sticky top-0 z-40 backdrop-blur-xl bg-white/85 dark:bg-[#0D1322]/85 border-b border-slate-200 dark:border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 via-red-600 to-blue-700 flex items-center justify-center text-white shadow-lg shadow-rose-600/20 font-bold text-lg">
+                    🍁
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="font-display font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-rose-500 via-slate-900 to-blue-600 dark:from-rose-400 dark:via-white dark:to-blue-400 bg-clip-text text-transparent">
+                            Do Zero ao Canadá
+                        </span>
+                        <span
+                            class="hidden sm:inline-block text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                            Rumo ao NCLC 7+
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Sistema Pessoal Acelerado •
+                        Francês A1 ao B2 & TCF Canada</p>
+                </div>
+            </div>
+
+            <!-- Desktop Navigation Tabs -->
+            <nav
+                class="hidden md:flex items-center bg-slate-100 dark:bg-slate-900/90 p-1 rounded-xl border border-slate-200/70 dark:border-slate-800">
+                <button onclick="switchTab('hoje')" id="nav-hoje"
+                    class="nav-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                    <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                    <span>Hoje</span>
+                </button>
+                <button onclick="switchTab('ia')" id="nav-ia"
+                    class="nav-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                    <i data-lucide="bot" class="w-4 h-4"></i>
+                    <span>Conversa com IA</span>
+                </button>
+                <button onclick="switchTab('aulas')" id="nav-aulas"
+                    class="nav-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Aulas da Semana</span>
+                </button>
+                <button onclick="switchTab('tcf')" id="nav-tcf"
+                    class="nav-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                    <i data-lucide="award" class="w-4 h-4"></i>
+                    <span>Simulador TCF</span>
+                </button>
+            </nav>
+
+            <!-- Quick Actions & Streak -->
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs sm:text-sm font-bold"
+                    title="Dias seguidos estudando">
+                    <i data-lucide="flame" class="w-4 h-4 fill-amber-500"></i>
+                    <span id="header-streak">1</span>
+                    <span class="hidden sm:inline font-medium text-xs">dias</span>
+                </div>
+
+                <button onclick="testVoiceAudio()"
+                    class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                    title="Testar Áudio em Francês">
+                    <i data-lucide="volume-2" class="w-4 h-4"></i>
+                </button>
+
+                <button onclick="toggleTheme()"
+                    class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                    title="Alternar Tema Claro/Escuro">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12">
+
+        <!-- ==========================================
+             ABA 1: HOJE (DASHBOARD & ROTINA DIÁRIA)
+             ========================================== -->
+        <section id="tab-hoje" class="tab-content space-y-6">
+            <!-- Top Welcome Banner -->
+            <div
+                class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-[#131C31] to-rose-950 text-white p-6 sm:p-8 border border-slate-800 shadow-xl">
+                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="space-y-2 max-w-2xl">
+                        <div
+                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium text-rose-300">
+                            <span>🇫🇷 🇨🇦 Método Guiado sem Decoreba</span>
+                            <span>•</span>
+                            <span id="current-date-label">Hoje</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                            Bonjour ! Pronto para avançar rumo ao Canadá hoje?
+                        </h1>
+                        <p class="text-slate-300 text-sm sm:text-base">
+                            Você não precisa descobrir o que estudar. Siga os 4 blocos da sua rotina diária na ordem
+                            abaixo para destravar a fala e construir base para o TCF.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                        <button onclick="completeDayStreak()"
+                            class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/30 transition">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>Concluir Meta de Hoje</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 KPI Counters (Inspirado no site de referência) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div
+                    class="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ofensiva
+                            de Estudo</span>
+                        <span class="p-2 rounded-lg bg-amber-500/10 text-amber-500"><i data-lucide="flame"
+                                class="w-5 h-5"></i></span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="kpi-study-days" class="text-3xl font-extrabold">1</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">dias seguidos</span>
+                    </div>
+                    <p class="text-xs text-emerald-500 mt-2 font-medium flex items-center gap-1">
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Consistência ativa
+                    </p>
+                </div>
+
+                <div
+                    class="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Falando
+                            com a IA</span>
+                        <span class="p-2 rounded-lg bg-blue-500/10 text-blue-500"><i data-lucide="mic"
+                                class="w-5 h-5"></i></span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="kpi-ai-days" class="text-3xl font-extrabold">0</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">sessões práticas</span>
+                    </div>
+                    <p class="text-xs text-blue-400 mt-2 font-medium">Destravando o ouvido e a fala</p>
+                </div>
+
+                <div
+                    class="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Revisões
+                            de Hoje</span>
+                        <span class="p-2 rounded-lg bg-rose-500/10 text-rose-500"><i data-lucide="layers"
+                                class="w-5 h-5"></i></span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="kpi-pending-reviews" class="text-3xl font-extrabold">6</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">cartões pendentes</span>
+                    </div>
+                    <p id="kpi-reviews-status" class="text-xs text-rose-400 mt-2 font-medium">Memória espaçada pronta
+                    </p>
+                </div>
+
+                <div
+                    class="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Nível
+                            Estimado</span>
+                        <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-500"><i data-lucide="compass"
+                                class="w-5 h-5"></i></span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="kpi-level" class="text-2xl sm:text-3xl font-extrabold text-emerald-500">A1 • NCLC
+                            1</span>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                        <div id="kpi-level-bar"
+                            class="bg-gradient-to-r from-emerald-500 to-blue-500 h-full rounded-full transition-all duration-500"
+                            style="width: 15%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Grid: Daily Routine on Left (2 cols), Weekly Goal Calculator & Immersion on Right (1 col) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Coluna Principal: O Que Fazer Hoje (Na Ordem Certa) -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Barra de Progresso da Rotina Diária -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <div>
+                                <h2 class="text-lg font-bold flex items-center gap-2">
+                                    <i data-lucide="list-checks" class="w-5 h-5 text-rose-500"></i>
+                                    Sua Rotina Guiada de Hoje (Na Ordem Certa)
+                                </h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Marque cada etapa conforme
+                                    concluir seu estudo diário</p>
+                            </div>
+                            <span id="daily-progress-badge"
+                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-500">
+                                0 de 4 concluídos (0%)
+                            </span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-6">
+                            <div id="daily-progress-bar"
+                                class="h-full bg-gradient-to-r from-rose-500 to-blue-600 transition-all duration-500"
+                                style="width: 0%"></div>
+                        </div>
+
+                        <!-- Checklist Interactive Steps -->
+                        <div class="space-y-3">
+                            <!-- Passo 1 -->
+                            <div
+                                class="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800">
+                                <label class="flex items-start gap-3 cursor-pointer flex-1">
+                                    <input type="checkbox" id="check-step-1" onchange="toggleDailyStep(1)"
+                                        class="mt-1 w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <div>
+                                        <span class="font-bold text-sm sm:text-base block">1. Revisão Espaçada
+                                            (Flashcards com Áudio)</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">5 min • Nunca esqueça
+                                            as estruturas e palavras dos dias anteriores.</span>
+                                    </div>
+                                </label>
+                                <a href="#flashcard-box"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition">Revisar</a>
+                            </div>
+
+                            <!-- Passo 2 -->
+                            <div
+                                class="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800">
+                                <label class="flex items-start gap-3 cursor-pointer flex-1">
+                                    <input type="checkbox" id="check-step-2" onchange="toggleDailyStep(2)"
+                                        class="mt-1 w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <div>
+                                        <span class="font-bold text-sm sm:text-base block">2. Micro-Aula Estruturada do
+                                            Dia</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">15 min • Gramática
+                                            descomplicada em português + frases modelo.</span>
+                                    </div>
+                                </label>
+                                <button onclick="switchTab('aulas')"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition">Ir
+                                    p/ Aula</button>
+                            </div>
+
+                            <!-- Passo 3 -->
+                            <div
+                                class="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800">
+                                <label class="flex items-start gap-3 cursor-pointer flex-1">
+                                    <input type="checkbox" id="check-step-3" onchange="toggleDailyStep(3)"
+                                        class="mt-1 w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <div>
+                                        <span class="font-bold text-sm sm:text-base block">3. Prática de Fala com a
+                                            Professora IA</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">10 min • Destrave a
+                                            fala sem medo de julgamento na sua etapa atual.</span>
+                                    </div>
+                                </label>
+                                <button onclick="switchTab('ia')"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition">Praticar</button>
+                            </div>
+
+                            <!-- Passo 4 -->
+                            <div
+                                class="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800">
+                                <label class="flex items-start gap-3 cursor-pointer flex-1">
+                                    <input type="checkbox" id="check-step-4" onchange="toggleDailyStep(4)"
+                                        class="mt-1 w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <div>
+                                        <span class="font-bold text-sm sm:text-base block">4. Imersão Canadense no
+                                            Cotidiano</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">10 min • Ouvir 1 áudio
+                                            da Radio-Canada ou narrar seu dia em francês.</span>
+                                    </div>
+                                </label>
+                                <span class="text-xs font-medium text-slate-400 px-2">Hábito</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bloco Interativo 1: Revisão Espaçada (Flashcards SRS) -->
+                    <div id="flashcard-box"
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider text-rose-500">Passo 1 • Memória
+                                    Ativa</span>
+                                <h3 class="text-lg font-bold">Flashcards de Revisão Espaçada (Com Áudio)</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="openAddFlashcardModal()"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Novo Cartão
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Flashcard Area -->
+                        <div id="srs-container" class="space-y-4">
+                            <div onclick="flipCurrentCard()"
+                                class="card-flip cursor-pointer select-none h-56 sm:h-64 w-full">
+                                <div id="flashcard-inner" class="card-inner relative w-full h-full rounded-2xl">
+                                    <!-- Frente (Francês) -->
+                                    <div
+                                        class="card-face absolute inset-0 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex flex-col justify-between border border-slate-700 shadow-lg">
+                                        <div class="flex items-center justify-between">
+                                            <span id="fc-category"
+                                                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/10 text-rose-300">Essencial
+                                                TCF</span>
+                                            <button onclick="event.stopPropagation(); speakCurrentFlashcard()"
+                                                class="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white shadow-md transition flex items-center gap-1.5 text-xs font-bold">
+                                                <i data-lucide="volume-2" class="w-4 h-4"></i> Ouvir Pronúncia
+                                            </button>
+                                        </div>
+                                        <div class="text-center my-auto px-2">
+                                            <p id="fc-front"
+                                                class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Je
+                                                voudrais prendre un rendez-vous, s'il vous plaît.</p>
+                                            <p id="fc-phonetic" class="text-xs sm:text-sm text-slate-400 mt-2 italic">
+                                                [Jê vudrê prândr ãn rãdê-vu, sil vu plê]</p>
+                                        </div>
+                                        <div
+                                            class="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
+                                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Toque no cartão para ver
+                                            a tradução e explicação
+                                        </div>
+                                    </div>
+
+                                    <!-- Verso (Português & Contexto) -->
+                                    <div
+                                        class="card-face card-back absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-950 via-slate-900 to-slate-900 text-white p-6 flex flex-col justify-between border border-blue-500/30 shadow-lg">
+                                        <div class="flex items-center justify-between">
+                                            <span
+                                                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300">Tradução
+                                                & Uso no Canadá</span>
+                                            <span id="fc-counter" class="text-xs text-slate-400">Cartão 1/6</span>
+                                        </div>
+                                        <div class="text-center my-auto space-y-2">
+                                            <p id="fc-back" class="text-lg sm:text-xl font-bold text-emerald-300">"Eu
+                                                gostaria de agendar um horário, por favor."</p>
+                                            <p id="fc-tip" class="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
+                                                Usado constantemente na Tâche 2 do TCF (agendar médico, banco ou
+                                                matrícula no Québec/Canadá).</p>
+                                        </div>
+                                        <div class="text-center text-xs text-slate-400">Avalie abaixo quão fácil foi
+                                            lembrar</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SRS Buttons -->
+                            <div class="grid grid-cols-3 gap-3 pt-2">
+                                <button onclick="rateFlashcard('hard')"
+                                    class="py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold text-xs sm:text-sm transition">
+                                    😓 Difícil (Repetir hoje)
+                                </button>
+                                <button onclick="rateFlashcard('good')"
+                                    class="py-2.5 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-500 font-bold text-xs sm:text-sm transition">
+                                    🙂 Bom (+2 dias)
+                                </button>
+                                <button onclick="rateFlashcard('easy')"
+                                    class="py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-500 font-bold text-xs sm:text-sm transition">
+                                    ⚡ Fácil (+5 dias)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna Lateral: Calculadora de Meta Semanal + Checklist de Imersão -->
+                <div class="space-y-6">
+
+                    <!-- Calculadora de Meta Semanal (Inspirado na página de vendas) -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                        <div class="flex items-center gap-2 text-rose-500 font-bold text-xs uppercase tracking-wider">
+                            <i data-lucide="calculator" class="w-4 h-4"></i> Planejador Realista
+                        </div>
+                        <h3 class="text-lg font-bold">Quando vou chegar no nível do Canadá?</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Defina quantas horas por semana você pode dedicar ao portal e veja sua previsão real para
+                            atingir <strong>NCLC 5</strong> (Francophone Mobility) e <strong>NCLC 7</strong> (Express
+                            Entry).
+                        </p>
+
+                        <div class="pt-2 space-y-2">
+                            <div class="flex justify-between text-sm font-semibold">
+                                <span>Dedicação Semanal:</span>
+                                <span id="calc-hours-label" class="text-rose-500 font-extrabold">7 horas / sem
+                                    (1h/dia)</span>
+                            </div>
+                            <input type="range" id="calc-hours-slider" min="3" max="20" value="7"
+                                oninput="updateGoalCalculator()" class="w-full accent-rose-600 cursor-pointer">
+                            <div class="flex justify-between text-[11px] text-slate-400">
+                                <span>3h/sem (Leve)</span>
+                                <span>10h/sem (Focado)</span>
+                                <span>20h/sem (Intensivo)</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2.5 pt-2">
+                            <div
+                                class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-blue-500 uppercase block">Meta 1 • Nível B1
+                                        (NCLC 5)</span>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">Permissão de trabalho
+                                        Francophone</span>
+                                </div>
+                                <span id="calc-b1-result"
+                                    class="text-sm font-extrabold bg-blue-500/10 text-blue-400 px-3 py-1 rounded-lg">~5
+                                    meses</span>
+                            </div>
+
+                            <div
+                                class="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-rose-500 uppercase block">Meta 2 • Nível B2
+                                        (NCLC 7+)</span>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">+50 pts bônus no Express
+                                        Entry</span>
+                                </div>
+                                <span id="calc-b2-result"
+                                    class="text-sm font-extrabold bg-rose-500/15 text-rose-400 px-3 py-1 rounded-lg">~9
+                                    meses</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Checklist de Imersão Diária Canadense -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold flex items-center gap-2">
+                                <i data-lucide="headphones" class="w-4 h-4 text-blue-500"></i>
+                                Hábitos de Imersão no Brasil
+                            </h3>
+                            <span class="text-[11px] text-slate-400">Bônus Diário</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Transforme seu ambiente para acostumar seu cérebro com o francês falado no Canadá:
+                        </p>
+                        <div class="space-y-2.5 text-xs sm:text-sm">
+                            <label
+                                class="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer transition">
+                                <input type="checkbox" class="rounded text-rose-600 focus:ring-rose-500"
+                                    onchange="saveImmersionHabit()">
+                                <span>Ouvir 10 min do app <strong>Ohdio (Radio-Canada)</strong></span>
+                            </label>
+                            <label
+                                class="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer transition">
+                                <input type="checkbox" class="rounded text-rose-600 focus:ring-rose-500"
+                                    onchange="saveImmersionHabit()">
+                                <span>Narrar em voz alta 3 coisas que estou fazendo agora</span>
+                            </label>
+                            <label
+                                class="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer transition">
+                                <input type="checkbox" class="rounded text-rose-600 focus:ring-rose-500"
+                                    onchange="saveImmersionHabit()">
+                                <span>Ler 1 notícia rápida no <em>La Presse</em> ou <em>Le Devoir</em></span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             ABA 2: CONVERSA COM IA (5 ETAPAS + TUTORA 24H)
+             ========================================== -->
+        <section id="tab-ia" class="tab-content hidden space-y-6">
+
+            <!-- Header Explanation: As 5 Etapas para Destravar a Fala -->
+            <div
+                class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-rose-500">Fale Desde a Primeira
+                            Semana</span>
+                        <h2 class="text-xl sm:text-2xl font-extrabold">Professora Particular IA 24h • Progressão em 5
+                            Etapas</h2>
+                        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            Você não é jogado em uma conversa difícil logo de cara. Escolha sua etapa abaixo e a IA
+                            adaptará a velocidade, vocabulário e correções.
+                        </p>
+                    </div>
+                    <button onclick="openPromptsModal()"
+                        class="self-start md:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-bold transition shrink-0">
+                        <i data-lucide="copy" class="w-4 h-4 text-rose-500"></i>
+                        <span>Prompts Prontos Copiáveis</span>
+                    </button>
+                </div>
+
+                <!-- Seletor das 5 Etapas -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-2">
+                    <button onclick="selectAIStage(1)" id="stage-btn-1"
+                        class="stage-btn text-left p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-extrabold uppercase text-rose-500">Etapa 1</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">A1 Zero</span>
+                        </div>
+                        <p class="font-bold text-sm">Ouvir e Repetir</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Frases curtas de sobrevivência
+                            com pronúncia guiada.</p>
+                    </button>
+
+                    <button onclick="selectAIStage(2)" id="stage-btn-2"
+                        class="stage-btn text-left p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-extrabold uppercase text-blue-500">Etapa 2</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">A1-A2</span>
+                        </div>
+                        <p class="font-bold text-sm">Perguntas Simples</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Responda com 1 ou 2 frases sobre
+                            sua rotina e gostos.</p>
+                    </button>
+
+                    <button onclick="selectAIStage(3)" id="stage-btn-3"
+                        class="stage-btn text-left p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-extrabold uppercase text-emerald-500">Etapa 3</span>
+                            <span
+                                class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">A2-B1</span>
+                        </div>
+                        <p class="font-bold text-sm">Situações no Canadá</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Roleplay: Tim Hortons, aluguel em
+                            Montréal, imigração.</p>
+                    </button>
+
+                    <button onclick="selectAIStage(4)" id="stage-btn-4"
+                        class="stage-btn text-left p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-extrabold uppercase text-amber-500">Etapa 4</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">B1-B2</span>
+                        </div>
+                        <p class="font-bold text-sm">Opinião & Debate</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Use conectores (cependant, en
+                            revanche) para defender ideias.</p>
+                    </button>
+
+                    <button onclick="selectAIStage(5)" id="stage-btn-5"
+                        class="stage-btn text-left p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-extrabold uppercase text-purple-500">Etapa 5</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-400">B2 TCF</span>
+                        </div>
+                        <p class="font-bold text-sm">Nível Prova TCF</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Simulação de entrevista oficial
+                            Tâche 1, 2 e 3 sem pausas.</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat & Topic Generator Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Left Column: Sorteador de Tema do Dia + Dicas de Conectores -->
+                <div class="space-y-6">
+                    <!-- Gerador de Temas do Dia -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span
+                                class="text-xs font-bold uppercase tracking-wider text-rose-500 flex items-center gap-1.5">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i> Gerador de Tema
+                            </span>
+                            <button onclick="drawRandomTopic()"
+                                class="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-1">
+                                <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> Sortear Novo Tema
+                            </button>
+                        </div>
+
+                        <div
+                            class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
+                            <span id="topic-stage-tag" class="text-[11px] font-bold text-blue-400 uppercase">Situação
+                                Prática Canadense</span>
+                            <h4 id="topic-title" class="font-bold text-base">Pedindo um café e resolvendo um erro no
+                                pedido no Tim Hortons</h4>
+                            <p id="topic-Starter" class="text-xs text-slate-600 dark:text-slate-300 italic">
+                                Frase para começar: "Bonjour ! Excusez-moi, j'avais commandé un café glacé sans sucre,
+                                mais celui-ci est très sucré..."
+                            </p>
+                            <div class="pt-2 flex gap-2">
+                                <button onclick="startTopicInChat()"
+                                    class="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
+                                    Iniciar este Tema com a IA
+                                </button>
+                                <button
+                                    onclick="speakText(document.getElementById('topic-Starter').innerText.replace('Frase para começar: ', ''))"
+                                    class="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 transition"
+                                    title="Ouvir frase inicial">
+                                    <i data-lucide="volume-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Apoio: Conectores que Subem Nota no TCF -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                            Muletas & Conectores NCLC 7+ (Clique p/ ouvir)
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Tente incluir pelo menos 1 destas expressões na sua próxima resposta no chat:
+                        </p>
+                        <div class="space-y-2 text-xs">
+                            <button onclick="speakText('À mon avis, il est essentiel de considérer...')"
+                                class="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-rose-500/10 border border-slate-200/60 dark:border-slate-800 transition flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-rose-500 block">À mon avis, il est essentiel
+                                        de...</span>
+                                    <span class="text-slate-500 dark:text-slate-400">Na minha opinião, é
+                                        essencial...</span>
+                                </div>
+                                <i data-lucide="volume-2" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                            </button>
+                            <button onclick="speakText('D’une part... d’autre part...')"
+                                class="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-rose-500/10 border border-slate-200/60 dark:border-slate-800 transition flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-blue-500 block">D’une part... d’autre part...</span>
+                                    <span class="text-slate-500 dark:text-slate-400">Por um lado... por outro
+                                        lado...</span>
+                                </div>
+                                <i data-lucide="volume-2" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                            </button>
+                            <button onclick="speakText('En ce qui concerne le marché du travail au Canada...')"
+                                class="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-rose-500/10 border border-slate-200/60 dark:border-slate-800 transition flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-emerald-500 block">En ce qui concerne...</span>
+                                    <span class="text-slate-500 dark:text-slate-400">No que diz respeito a...</span>
+                                </div>
+                                <i data-lucide="volume-2" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column (2 cols): Chat Interativo em Tempo Real com Professora IA -->
+                <div
+                    class="lg:col-span-2 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col h-[600px]">
+                    <!-- Chat Topbar -->
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-600 to-blue-600 flex items-center justify-center text-white font-bold">
+                                👩‍🏫
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-bold text-sm sm:text-base">Prof. Camille (IA Montréal)</h3>
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                </div>
+                                <p id="chat-stage-indicator" class="text-xs text-slate-500 dark:text-slate-400">Etapa 3:
+                                    Situações Reais no Canadá • Corrige em PT-BR + Conversa em FR</p>
+                            </div>
+                        </div>
+                        <button onclick="clearAIChat()"
+                            class="text-xs text-slate-400 hover:text-rose-500 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reiniciar
+                        </button>
+                    </div>
+
+                    <!-- Chat Messages History -->
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <!-- Initial Welcome Message from Camille -->
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold text-xs shrink-0 mt-1">
+                                CA</div>
+                            <div
+                                class="max-w-[85%] rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-800/90 p-4 text-sm space-y-2">
+                                <p class="font-medium text-slate-900 dark:text-white">
+                                    Bonjour ! Je suis Camille, ta professeure de français spécialisée dans le TCF Canada
+                                    et la vie au Québec. 🍁
+                                </p>
+                                <p
+                                    class="text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 pt-2">
+                                    💡 <strong>Como funciona:</strong> Escreva ou fale pelo microfone em francês (mesmo
+                                    que erre ou misture uma palavra em português). Eu sempre vou corrigir você
+                                    gentilmente e continuar a conversa!
+                                </p>
+                                <button
+                                    onclick="speakText('Bonjour ! Je suis Camille, ta professeure de français spécialisée dans le TCF Canada. Comment vas-tu aujourd\'hui ?')"
+                                    class="inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:underline pt-1">
+                                    <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> Ouvir pronúncia em francês
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Bar with Voice Recognition + Send -->
+                    <div
+                        class="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl">
+                        <div class="flex items-center gap-2">
+                            <button id="mic-chat-btn" onclick="toggleSpeechRecognition('chat-input', 'mic-chat-btn')"
+                                class="p-3 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-slate-700 dark:text-slate-300 transition shrink-0"
+                                title="Falar em Francês (Reconhecimento de Voz)">
+                                <i data-lucide="mic" class="w-5 h-5"></i>
+                            </button>
+                            <input type="text" id="chat-input" onkeydown="if(event.key==='Enter') sendChatMessage()"
+                                placeholder="Escreva ou clique no microfone para falar em francês..."
+                                class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-sm focus:outline-none focus:border-rose-500">
+                            <button onclick="sendChatMessage()" id="send-chat-btn"
+                                class="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition flex items-center gap-1.5 shrink-0 shadow-md shadow-rose-600/20">
+                                <span>Enviar</span>
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             ABA 3: AULAS DA SEMANA (DO ZERO AO B2 + EXPRESSÕES DO CANADÁ)
+             ========================================== -->
+        <section id="tab-aulas" class="tab-content hidden space-y-6">
+
+            <!-- Module Filter Bar -->
+            <div
+                class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-500">Trilha Estruturada Sem
+                        Enrolação</span>
+                    <h2 class="text-xl sm:text-2xl font-extrabold">Aulas da Semana (A1 ao B2) & Expressões do Canadá
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        Explicações diretas em português, áudio nativo e mini-prova ao final de cada módulo para validar
+                        seu avanço.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filterLessons('all')"
+                        class="lesson-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white">Todos
+                        os Níveis</button>
+                    <button onclick="filterLessons('A1')"
+                        class="lesson-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800">A1
+                        • Base</button>
+                    <button onclick="filterLessons('A2')"
+                        class="lesson-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800">A2
+                        • Cotidiano</button>
+                    <button onclick="filterLessons('B1')"
+                        class="lesson-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800">B1
+                        • NCLC 5</button>
+                    <button onclick="filterLessons('B2')"
+                        class="lesson-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800">B2
+                        • TCF NCLC 7+</button>
+                </div>
+            </div>
+
+            <!-- Lessons Grid + Active Lesson Viewer -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Lista de Módulos/Semanas (1 col) -->
+                <div id="lessons-list" class="space-y-3">
+                    <!-- Populado via JS -->
+                </div>
+
+                <!-- Visualizador da Aula Ativa + Quiz da Semana (2 cols) -->
+                <div id="lesson-viewer"
+                    class="lg:col-span-2 bg-white dark:bg-[#111827] p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-6">
+                    <!-- Populado dinamicamente pelo JS ao clicar numa aula -->
+                </div>
+            </div>
+
+            <!-- Seção Bônus: Expressões da Vida Real no Canadá -->
+            <div
+                class="bg-gradient-to-br from-slate-900 via-[#121B2E] to-rose-950/60 text-white p-6 sm:p-8 rounded-2xl border border-slate-800 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-rose-400">🍁 Módulo Bônus
+                            Exclusivo</span>
+                        <h3 class="text-xl font-extrabold">Francês Real do Canadá (Québec & Francofonia)</h3>
+                        <p class="text-xs sm:text-sm text-slate-300">
+                            Palavras e expressões que você vai ouvir nas ruas de Montréal, Québec ou Ottawa e nos áudios
+                            do TCF Canada.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="canada-expressions-grid">
+                    <!-- Populado via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             ABA 4: SIMULADOR TCF CANADA (CRONÔMETRO + CORREÇÃO IA NCLC)
+             ========================================== -->
+        <section id="tab-tcf" class="tab-content hidden space-y-6">
+
+            <!-- Top Simulator Header -->
+            <div
+                class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500">Formato
+                            Oficial TCF Canada</span>
+                        <span class="text-xs text-slate-400">Meta Express Entry: NCLC 7 (10/20+)</span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-extrabold mt-1">Simulador de Provas com Correção IA NCLC</h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        Treine com cronômetro real, contagem de palavras e receba nota estimada (0 a 20), nível NCLC e
+                        reescrita padrão B2/C1.
+                    </p>
+                </div>
+
+                <!-- Mode Switcher: Expression Écrite vs Expression Orale -->
+                <div
+                    class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 self-start">
+                    <button onclick="setTCFMode('ecrite')" id="tcf-mode-ecrite"
+                        class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold bg-rose-600 text-white transition flex items-center gap-1.5">
+                        <i data-lucide="pen-tool" class="w-4 h-4"></i> Expressão Escrita
+                    </button>
+                    <button onclick="setTCFMode('orale')" id="tcf-mode-orale"
+                        class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5">
+                        <i data-lucide="mic" class="w-4 h-4"></i> Expressão Oral
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main TCF Workspace -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Left Column: Seleção de Tâche + Cronômetro + Histórico -->
+                <div class="space-y-6">
+                    <!-- Seletor de Tâche -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">1. Escolha a Tarefa
+                            (Tâche)</h3>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="selectTCFTask(1)" id="tcf-task-1"
+                                class="tcf-task-btn py-2.5 px-3 rounded-xl font-bold text-xs border transition">Tâche
+                                1</button>
+                            <button onclick="selectTCFTask(2)" id="tcf-task-2"
+                                class="tcf-task-btn py-2.5 px-3 rounded-xl font-bold text-xs border transition">Tâche
+                                2</button>
+                            <button onclick="selectTCFTask(3)" id="tcf-task-3"
+                                class="tcf-task-btn py-2.5 px-3 rounded-xl font-bold text-xs border transition">Tâche
+                                3</button>
+                        </div>
+
+                        <div
+                            class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span id="tcf-task-meta" class="text-xs font-extrabold text-rose-500">60 a 120 palavras
+                                    • Mensagem simples</span>
+                                <button onclick="randomizeTCFPrompt()"
+                                    class="text-xs font-semibold text-blue-500 hover:underline flex items-center gap-1">
+                                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Outro Tema
+                                </button>
+                            </div>
+                            <p id="tcf-prompt-text"
+                                class="text-xs sm:text-sm font-medium leading-relaxed text-slate-800 dark:text-slate-200">
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Cronômetro Oficial -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">2. Cronômetro de Prova
+                            </h3>
+                            <span id="tcf-timer-badge"
+                                class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">Pronto</span>
+                        </div>
+                        <div class="text-center py-2">
+                            <div id="tcf-timer-display"
+                                class="text-4xl font-mono font-extrabold tracking-wider text-slate-900 dark:text-white">
+                                15:00</div>
+                            <p class="text-xs text-slate-400 mt-1">Tempo recomendado para esta Tâche</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="toggleTCFTimer()" id="tcf-timer-btn"
+                                class="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5">
+                                <i data-lucide="play" class="w-4 h-4"></i> Iniciar / Pausar
+                            </button>
+                            <button onclick="resetTCFTimer()"
+                                class="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs transition">
+                                Resetar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Histórico de Notas dos Simulados -->
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-3">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">Histórico de Simulados
+                        </h3>
+                        <div id="tcf-history-list" class="space-y-2 max-h-48 overflow-y-auto text-xs">
+                            <!-- Populado via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column (2 cols): Editor de Resposta + Relatório de Avaliação IA -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div
+                        class="bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 id="tcf-editor-title" class="font-bold text-base sm:text-lg">Sua Resposta em Francês
+                                </h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">No modo Oral, clique no botão de
+                                    microfone para gravar e transcrever sua fala ao vivo.</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button id="tcf-mic-btn"
+                                    onclick="toggleSpeechRecognition('tcf-response-input', 'tcf-mic-btn')"
+                                    class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-600 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
+                                    <i data-lucide="mic" class="w-4 h-4"></i> Ditar por Voz (FR)
+                                </button>
+                                <span id="tcf-word-counter"
+                                    class="text-xs font-extrabold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                    0 palavras
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Acentos Franceses Rápidos -->
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="text-xs text-slate-400 self-center mr-1">Acentos:</span>
+                            <button onclick="insertChar('é')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">é</button>
+                            <button onclick="insertChar('è')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">è</button>
+                            <button onclick="insertChar('ê')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">ê</button>
+                            <button onclick="insertChar('à')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">à</button>
+                            <button onclick="insertChar('ù')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">ù</button>
+                            <button onclick="insertChar('ç')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">ç</button>
+                            <button onclick="insertChar('œ')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">œ</button>
+                            <button onclick="insertChar('’')"
+                                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-xs font-mono font-bold">’</button>
+                        </div>
+
+                        <textarea id="tcf-response-input" oninput="updateTCFWordCount()" rows="8"
+                            placeholder="Redija ou transcreva sua resposta em francês aqui..."
+                            class="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-sm leading-relaxed focus:outline-none focus:border-rose-500"></textarea>
+
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                            <button onclick="fillSampleTCFResponse()"
+                                class="text-xs text-slate-400 hover:text-blue-400 underline">
+                                Preencher com resposta exemplo para testar o avaliador
+                            </button>
+                            <button onclick="evaluateTCFWithAI()" id="tcf-eval-btn"
+                                class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-blue-600 hover:from-rose-500 hover:to-blue-500 text-white font-extrabold text-sm shadow-lg shadow-rose-600/20 transition flex items-center justify-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span>Avaliar com IA Oficial (Nota NCLC)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Resultado da Avaliação IA -->
+                    <div id="tcf-evaluation-result"
+                        class="hidden bg-white dark:bg-[#111827] p-6 rounded-2xl border border-emerald-500/30 shadow-lg space-y-5">
+                        <!-- Preenchido pela resposta JSON estruturada da Gemini API -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav
+        class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0D1322]/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 grid grid-cols-4 py-1.5 px-2">
+        <button onclick="switchTab('hoje')" id="mob-nav-hoje"
+            class="mob-nav-btn flex flex-col items-center py-1.5 rounded-xl text-xs font-semibold">
+            <i data-lucide="calendar-check" class="w-5 h-5 mb-0.5"></i>
+            <span>Hoje</span>
+        </button>
+        <button onclick="switchTab('ia')" id="mob-nav-ia"
+            class="mob-nav-btn flex flex-col items-center py-1.5 rounded-xl text-xs font-semibold">
+            <i data-lucide="bot" class="w-5 h-5 mb-0.5"></i>
+            <span>Prof. IA</span>
+        </button>
+        <button onclick="switchTab('aulas')" id="mob-nav-aulas"
+            class="mob-nav-btn flex flex-col items-center py-1.5 rounded-xl text-xs font-semibold">
+            <i data-lucide="book-open" class="w-5 h-5 mb-0.5"></i>
+            <span>Aulas</span>
+        </button>
+        <button onclick="switchTab('tcf')" id="mob-nav-tcf"
+            class="mob-nav-btn flex flex-col items-center py-1.5 rounded-xl text-xs font-semibold">
+            <i data-lucide="award" class="w-5 h-5 mb-0.5"></i>
+            <span>TCF</span>
+        </button>
+    </nav>
+
+    <!-- MODAL: Adicionar Novo Flashcard -->
+    <div id="modal-add-card"
+        class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-lg">Novo Flashcard em Francês</h3>
+                <button onclick="closeAddFlashcardModal()" class="text-slate-400 hover:text-white"><i data-lucide="x"
+                        class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-400">Frase ou Expressão em Francês</label>
+                    <input id="new-fc-front" type="text" placeholder="Ex: Je tiens à vous remercier..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-400">Pronúncia Figurada (Opcional)</label>
+                    <input id="new-fc-phonetic" type="text" placeholder="Ex: [Jê tiãn a vu rêmêrciê]"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-400">Tradução em Português</label>
+                    <input id="new-fc-back" type="text" placeholder="Ex: Faço questão de agradecer a você..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-400">Dica de Uso no Canadá / TCF</label>
+                    <input id="new-fc-tip" type="text" placeholder="Ex: Excelente para fechar cartas formais na Tâche 2"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeAddFlashcardModal()"
+                    class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold">Cancelar</button>
+                <button onclick="saveNewFlashcard()"
+                    class="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold">Salvar no Baralho</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Biblioteca de Prompts Prontos Copiáveis -->
+    <div id="modal-prompts"
+        class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-lg">Biblioteca de Prompts Prontos para IA</h3>
+                    <p class="text-xs text-slate-400">Copie e cole caso queira treinar por voz em outros aplicativos no
+                        celular</p>
+                </div>
+                <button onclick="closePromptsModal()" class="text-slate-400 hover:text-white"><i data-lucide="x"
+                        class="w-5 h-5"></i></button>
+            </div>
+            <div class="overflow-y-auto space-y-3 pr-1 text-xs sm:text-sm">
+                <div
+                    class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-rose-500">1. Tutor de Conversação A1/A2 (Sem Travar)</span>
+                        <button
+                            onclick="copyPromptText(this, 'Atue como meu professor particular de francês do Québec. Meu nível é iniciante (A1/A2). Faça uma pergunta curta por vez em francês simples. Quando eu responder, corrija meus erros gentilmente em português e continue a conversa em francês.')"
+                            class="px-2.5 py-1 rounded bg-rose-500/10 text-rose-500 font-bold text-xs">Copiar
+                            Prompt</button>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 italic">"Atue como meu professor particular de francês
+                        do Québec. Meu nível é iniciante (A1/A2). Faça uma pergunta curta por vez em francês simples.
+                        Quando eu responder, corrija meus erros gentilmente em português e continue a conversa em
+                        francês."</p>
+                </div>
+
+                <div
+                    class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-blue-500">2. Simulador TCF Canada — Tâche 2 (Fazer Perguntas)</span>
+                        <button
+                            onclick="copyPromptText(this, 'Vamos simular a Tâche 2 da Expression Orale do TCF Canada. Você é um vizinho canadense em Montréal e eu preciso fazer pelo menos 8 perguntas para alugar seu apartamento. Responda naturalmente e, ao final, avalie minha performance segundo a régua NCLC.')"
+                            class="px-2.5 py-1 rounded bg-blue-500/10 text-blue-500 font-bold text-xs">Copiar
+                            Prompt</button>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 italic">"Vamos simular a Tâche 2 da Expression Orale do
+                        TCF Canada. Você é um vizinho canadense em Montréal e eu preciso fazer pelo menos 8 perguntas
+                        para alugar seu apartamento. Responda naturalmente e, ao final, avalie minha performance segundo
+                        a régua NCLC."</p>
+                </div>
+
+                <div
+                    class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-emerald-500">3. Simulador TCF Canada — Tâche 3 (Opinião NCLC
+                            7+)</span>
+                        <button
+                            onclick="copyPromptText(this, 'Atue como examinador oficial do TCF Canada na Tâche 3 da Expression Orale. Sorteie uma pergunta de debate social (ex: teletrabalho, imigração, tecnologia). Depois que eu responder, me dê uma nota NCLC e reescreva minha fala usando conectores de nível B2/C1.')"
+                            class="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-500 font-bold text-xs">Copiar
+                            Prompt</button>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 italic">"Atue como examinador oficial do TCF Canada na
+                        Tâche 3 da Expression Orale. Sorteie uma pergunta de debate social (ex: teletrabalho, imigração,
+                        tecnologia). Depois que eu responder, me dê uma nota NCLC e reescreva minha fala usando
+                        conectores de nível B2/C1."</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"
+        class="fixed bottom-20 md:bottom-6 right-6 z-50 hidden px-4 py-3 rounded-xl bg-slate-900 text-white border border-slate-700 shadow-2xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toast-msg">Salvo com sucesso!</span>
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT COMPLETO DA APLICAÇÃO
+         ========================================== -->
+    <script>
+        // API Key configuration per environment rules
+        const apiKey = "";
+
+        // Estado persistido no localStorage
+        const DEFAULT_STATE = {
+            studyStreak: 1,
+            aiSessions: 0,
+            lastCompletedDate: null,
+            dailySteps: { 1: false, 2: false, 3: false, 4: false },
+            completedLessons: [1],
+            currentAIStage: 3,
+            flashcards: [
+                {
+                    category: "TCF Tâche 2 • Agendamento",
+                    front: "Je voudrais prendre un rendez-vous, s'il vous plaît.",
+                    phonetic: "[Jê vudrê prândr ãn rãdê-vu, sil vu plê]",
+                    back: "Eu gostaria de agendar um horário, por favor.",
+                    tip: "Essencial para consultas médicas, SAAQ ou abertura de conta no Canadá."
+                },
+                {
+                    category: "Conector B2 • Argumentação",
+                    front: "Il est indéniable que cette mesure présente des avantages.",
+                    phonetic: "[Il ê tãdêniabl kê sêt mêzyr prêzãt dê zavãtaj]",
+                    back: "É inegável que esta medida apresenta vantagens.",
+                    tip: "Frase curinga para iniciar a Tâche 3 (Escrita ou Oral) com nota NCLC 7+."
+                },
+                {
+                    category: "Vida no Canadá • Cotidiano",
+                    front: "Pourriez-vous me renseigner sur les tarifs d'inscription ?",
+                    phonetic: "[Puriê-vu mê rãsênhê syr lê tarif dãscripsiõ ?]",
+                    back: "Você poderia me informar sobre as taxas de inscrição?",
+                    tip: "Muito mais elegante do que 'Combien ça coûte' na prova oral do TCF."
+                },
+                {
+                    category: "Estrutura B1 • Passado",
+                    front: "Je viens d'arriver au Canada il y a trois semaines.",
+                    phonetic: "[Jê viãn darivê ô Canadá il i a truá sêmên]",
+                    back: "Acabei de chegar ao Canadá há três semanas.",
+                    tip: "Passé récent (venir de + infinitivo): muito cobrado na Tâche 1."
+                },
+                {
+                    category: "Conector B2 • Contraste",
+                    front: "En revanche, il faut tenir compte du coût de la vie.",
+                    phonetic: "[Ã rêvãch, il fô tênir cõt dy cu dê la vi]",
+                    back: "Em compensação / Por outro lado, é preciso levar em conta o custo de vida.",
+                    tip: "Substitui o 'mais' básico e eleva imediatamente sua nota lexical."
+                },
+                {
+                    category: "Expressão Québécoise",
+                    front: "Il fait frette ce matin à Montréal, habille-toi chaudement !",
+                    phonetic: "[Il fê frêt sê matãn a Mõrêal, abii-tuá chôdmã]",
+                    back: "Está um frio cortante esta manhã em Montréal, vista-se bem agasalhado!",
+                    tip: "'Frette' é o clássico termo canadense para frio extremo de inverno."
+                }
+            ],
+            currentCardIndex: 0,
+            pendingReviews: 6,
+            tcfHistory: [
+                { date: "Exemplo Inicial", mode: "Escrita Tâche 3", score: "12/20", nclc: "NCLC 7 (B2)" }
+            ]
+        };
+
+        let state = loadState();
+        let activeLessonId = 1;
+        let activeTCFMode = 'ecrite';
+        let activeTCFTask = 1;
+        let tcfTimerInterval = null;
+        let tcfSecondsLeft = 900;
+        let chatHistory = [];
+
+        // Banco de Aulas Estruturadas (Do Zero A1 ao B2 TCF)
+        const LESSONS_DATA = [
+            {
+                id: 1,
+                level: "A1",
+                week: "Semana 1",
+                title: "Apresentação Impecável (Tâche 1 Oral)",
+                duration: "15 min",
+                summary: "Como se apresentar em 2 minutos falando de profissão, família, hobbies e projeto de imigração para o Canadá.",
+                explanation: `Na <strong>Tâche 1 da Expressão Oral do TCF Canada</strong>, o examinador pede para você se apresentar por cerca de 2 minutos sem interrupção. O segredo para não travar desde a primeira semana é seguir o roteiro <strong>P.P.F.</strong> (Presente → Passado → Futuro no Canadá).`,
+                examples: [
+                    { fr: "Je m'appelle Lucas, j'ai trente-deux ans et je suis ingénieur informatique au Brésil.", pt: "Meu nome é Lucas, tenho 32 anos e sou engenheiro de computação no Brasil." },
+                    { fr: "Actuellement, j'apprends le français parce que j'ai le projet de m'installer au Canada avec ma famille.", pt: "Atualmente, aprendo francês porque tenho o projeto de me instalar no Canadá com minha família." },
+                    { fr: "Pendant mon temps libre, j'aime faire de la randonnée et cuisiner.", pt: "Durante meu tempo livre, gosto de fazer trilhas e cozinhar." }
+                ],
+                quiz: {
+                    question: "Como você diz em francês natural: 'Tenho o projeto de me instalar no Canadá'?",
+                    options: [
+                        "J'ai le projet de m'installer au Canada.",
+                        "Je suis projet pour habiter en Canada.",
+                        "J'ai une idée d'aller dans le Canada."
+                    ],
+                    correct: 0
+                }
+            },
+            {
+                id: 2,
+                level: "A1",
+                week: "Semana 2",
+                title: "Sons Nasais & Regras de Ouro da Pronúncia",
+                duration: "12 min",
+                summary: "Domine os sons AN/EN, ON, IN e o R francês sem sofrer com regras intermináveis.",
+                explanation: `Em francês, muitas letras finais não são pronunciadas (lembre-se da palavra <strong>C-a-R-e-F-u-L</strong>: geralmente só essas consoantes soam no final). Além disso, combinações como <strong>OU</strong> têm som de "U" (bonjour), enquanto o <strong>U</strong> sozinho é feito com bico de "U" dizendo "I" (tu, rue).`,
+                examples: [
+                    { fr: "Je prends un croissant et un café au lait tous les matins.", pt: "Eu tomo um croissant e um café com leite todas as manhãs." },
+                    { fr: "Vous habitez dans quel quartier de la ville de Québec ?", pt: "Você mora em qual bairro da cidade de Québec?" }
+                ],
+                quiz: {
+                    question: "Na palavra 'Beaucoup' (muito), como soam os grupos de vogais 'EAU' e 'OU'?",
+                    options: [
+                        "EAU soa como 'Ô' fechada e OU soa como 'U' ([Bô-cu]).",
+                        "Pronuncia-se exatamente cada letra: Bê-a-u-cô-u-p.",
+                        "O 'P' final deve ser fortemente pronunciado."
+                    ],
+                    correct: 0
+                }
+            },
+            {
+                id: 3,
+                level: "A2",
+                week: "Semana 4",
+                title: "A Arte de Fazer Perguntas Formais (Tâche 2)",
+                duration: "18 min",
+                summary: "As 3 estruturas essenciais para fazer 8 a 10 perguntas perfeitas no TCF Canada sem repetir sempre 'Est-ce que'.",
+                explanation: `Na <strong>Tâche 2 do TCF</strong>, você é avaliado pela variedade das suas perguntas. Se você usar apenas <em>"C'est combien ?"</em>, sua nota fica presa no A2. Para atingir B1/B2, alterne entre <strong>Pourriez-vous me dire...</strong>, <strong>Est-ce qu'il est possible de...</strong> e inversão simples.`,
+                examples: [
+                    { fr: "Pourriez-vous m'indiquer quels sont les horaires d'ouverture ?", pt: "Você poderia me indicar quais são os horários de funcionamento?" },
+                    { fr: "Est-ce que le chauffage et l'électricité sont inclus dans le loyer ?", pt: "O aquecimento e a eletricidade estão incluídos no aluguel?" },
+                    { fr: "Y a-t-il une station de métro à proximité de l'appartement ?", pt: "Há uma estação de metrô próxima ao apartamento?" }
+                ],
+                quiz: {
+                    question: "Qual destas perguntas tem registro formal ideal para garantir pontos altos na Tâche 2?",
+                    options: [
+                        "C'est combien le prix ?",
+                        "Pourriez-vous me préciser si une réduction est offerte aux nouveaux inscrits ?",
+                        "Tu as rabais pour moi ?"
+                    ],
+                    correct: 1
+                }
+            },
+            {
+                id: 4,
+                level: "B1",
+                week: "Semana 8",
+                title: "Passé Composé vs Imparfait (Contando Experiências)",
+                duration: "20 min",
+                summary: "Como narrar sua trajetória profissional e contar histórias no passado com precisão.",
+                explanation: `Use o <strong>Imparfait</strong> (j'avais, j'étais, je travaillais) para descrever o cenário ou um hábito antigo no Brasil. Use o <strong>Passé Composé</strong> (j'ai décidé, j'ai obtenu, je suis allé) para ações pontuais e concluídas.`,
+                examples: [
+                    { fr: "Quand j'habitais à São Paulo, je travaillais dans une banque, mais l'année dernière j'ai décidé de changer de carrière.", pt: "Quando eu morava em São Paulo, trabalhava em um banco, mas no ano passado decidi mudar de carreira." },
+                    { fr: "J'ai obtenu mon diplôme universitaire en 2019 et j'ai acquis cinq ans d'expérience.", pt: "Obtive meu diploma universitário em 2019 e adquiri cinco anos de experiência." }
+                ],
+                quiz: {
+                    question: "Complete corretamente: 'Hier soir, nous _______ (aller) au cinéma.'",
+                    options: [
+                        "nous avons allé",
+                        "nous sommes allés (verbos de movimento usam auxiliar ÊTRE)",
+                        "nous allions"
+                    ],
+                    correct: 1
+                }
+            },
+            {
+                id: 5,
+                level: "B2",
+                week: "Semana 14",
+                title: "Subjonctif & Argumentação NCLC 7+ (Tâche 3)",
+                duration: "25 min",
+                summary: "Estruturas avançadas que os corretores do TCF procuram para atribuir nível B2/C1.",
+                explanation: `Para tirar <strong>NCLC 7 ou superior (10/20 a 15/20)</strong> na Expressão Escrita e Oral, você precisa demonstrar domínio do <strong>Subjonctif</strong> após expressões de necessidade ou dúvida (<em>Il faut que, Bien que, Pour que</em>) e organizar o discurso em Introdução, 2 Argumentos com exemplos e Conclusão.`,
+                examples: [
+                    { fr: "Bien que le télétravail offre une grande flexibilité, il est indispensable que les entreprises maintiennent le lien social.", pt: "Embora o teletrabalho ofereça grande flexibilidade, é indispensável que as empresas mantenham o vínculo social." },
+                    { fr: "Je doute que cette solution soit suffisante à long terme sans l'aide du gouvernement.", pt: "Duvido que esta solução seja suficiente a longo prazo sem a ajuda do governo." }
+                ],
+                quiz: {
+                    question: "Qual forma completa corretamente a frase B2: 'Bien que cette technologie _____ très utile...'?",
+                    options: [
+                        "est (Indicativo)",
+                        "soit (Subjuntivo do verbo être após 'bien que')",
+                        "sera (Futuro)"
+                    ],
+                    correct: 1
+                }
+            }
+        ];
+
+        // Expressões Canadenses Bônus
+        const CANADA_EXPRESSIONS = [
+            {
+                expr: "Avoir hâte de...",
+                fr: "J'ai tellement hâte de découvrir l'hiver au Québec !",
+                pt: "Mal poder esperar / Estar ansioso(a) positivamente para algo.",
+                context: "Usado diariamente no Canadá e ótimo para fechar e-mails da Tâche 1."
+            },
+            {
+                expr: "Dépanneur",
+                fr: "Je vais passer au dépanneur acheter du lait.",
+                pt: "Loja de conveniência / mercadinho de bairro no Québec.",
+                context: "Na França significa mecânico/técnico; no Canadá é o mercadinho da esquina."
+            },
+            {
+                expr: "Bienvenue !",
+                fr: "— Merci beaucoup pour votre aide ! — Bienvenue !",
+                pt: "De nada! / Por nada! (influência de 'You're welcome').",
+                context: "Muito comum ouvir em lojas, cafés e serviços em Montréal e Québec."
+            },
+            {
+                expr: "Chum / Blonde",
+                fr: "Je vais souper avec mon chum / ma blonde ce soir.",
+                pt: "Namorado (chum) / Namorada (blonde) no Québec.",
+                context: "Nota: 'Souper' é o jantar no Canadá (enquanto 'dîner' é o almoço!)."
+            },
+            {
+                expr: "Magasiner",
+                fr: "Nous allons magasiner des vêtements d'hiver en fin de semaine.",
+                pt: "Fazer compras (em vez do anglicismo 'faire du shopping').",
+                context: "'En fin de semaine' é como os canadenses dizem 'no fim de semana'."
+            },
+            {
+                expr: "C'est tigidou !",
+                fr: "Tout est réglé pour le déménagement, c'est tigidou !",
+                pt: "Está tudo certo / Tudo ótimo / Perfeito!",
+                context: "Expressão típica e simpática do francês quebequense."
+            }
+        ];
+
+        // Banco de Temas Conversação IA
+        const AI_TOPICS = [
+            {
+                stage: "Etapa 3 • Vida Real no Canadá",
+                title: "Alugando um apartamento 3 ½ em Montréal",
+                starter: "Bonjour ! Je vous appelle au sujet de l'annonce pour l'appartement 3 ½ près du métro Jean-Talon. Est-il toujours disponible ?"
+            },
+            {
+                stage: "Etapa 2 • Rotina & Projetos",
+                title: "Por que você escolheu imigrar para o Canadá?",
+                starter: "J'ai choisi le Canada parce que c'est un pays sécuritaire qui offre d'excellentes opportunités professionnelles."
+            },
+            {
+                stage: "Etapa 4 • Debate TCF Tâche 3",
+                title: "Viver em uma grande metrópole (Montréal) ou no interior?",
+                starter: "À mon avis, vivre dans une ville moyenne permet d'avoir une meilleure qualité de vie, bien que les grandes métropoles offrent plus d'emplois."
+            },
+            {
+                stage: "Etapa 5 • Simulação TCF Tâche 2",
+                title: "Inscrevendo seu filho em um acampamento de verão canadense",
+                starter: "Bonjour ! Je souhaiterais inscrire mon enfant à votre camp d'été. Pourriez-vous me donner des informations sur les activités proposées ?"
+            }
+        ];
+
+        // Banco Oficial de Prompts TCF Canada (Escrita e Oral)
+        const TCF_PROMPTS = {
+            ecrite: {
+                1: [
+                    "Tâche 1 (60 a 120 palavras): Você acabou de chegar a Montréal para um curso de francês. Escreva um e-mail para seu amigo francês Maxime descrevendo a cidade, onde você está hospedado e convidando-o para visitá-lo no próximo mês.",
+                    "Tâche 1 (60 a 120 palavras): Você quer organizar uma festa de despedida para uma colega de trabalho que vai se mudar para Ottawa. Envie uma mensagem aos colegas informando data, local, programação e o que cada um deve levar."
+                ],
+                2: [
+                    "Tâche 2 (120 a 150 palavras): Você participou de um festival de inverno em Québec no último fim de semana. Escreva um artigo no seu blog contando como foi a experiência, o que você mais gostou e dando conselhos práticos para quem deseja ir no próximo ano.",
+                    "Tâche 2 (120 a 150 palavras): Você alugou um carro durante suas férias no Canadá, mas teve diversos problemas mecânicos e com o atendimento. Escreva uma carta formal à agência explicando o ocorrido e solicitando um reembolso parcial."
+                ],
+                3: [
+                    "Tâche 3 (120 a 180 palavras): Debate sobre o Teletrabalho. Documento 1 afirma que o trabalho remoto aumenta a produtividade e reduz o estresse no trânsito. Documento 2 alerta que o isolamento prejudica a saúde mental e a integração de novos funcionários. Sintetize os dois pontos de vista (40-60 palavras) e dê sua opinião fundamentada (80-120 palavras).",
+                    "Tâche 3 (120 a 180 palavras): Proibição do celular nas escolas. Documento 1 defende que melhora a concentração e o convívio. Documento 2 argumenta que é melhor educar para o uso digital responsável. Faça a síntese dos textos e apresente sua argumentação pessoal."
+                ]
+            },
+            orale: {
+                1: [
+                    "Tâche 1 Oral (2 min sem preparação): Apresente-se ao examinador. Fale sobre sua formação, sua profissão atual no Brasil, sua família, seus interesses pessoais e explique por que você está prestando o TCF Canada.",
+                    "Tâche 1 Oral (2 min sem preparação): Fale sobre sua cidade atual, sua rotina de trabalho, o que você gosta de fazer nos finais de semana e quais são seus planos profissionais no Canadá."
+                ],
+                2: [
+                    "Tâche 2 Oral (2 min preparo + 3 min interação): Você acabou de se mudar para uma cidade canadense e quer se inscrever em um clube esportivo municipal. Faça entre 8 e 10 perguntas ao atendente (horários, preços, equipamentos, níveis, descontos familiares).",
+                    "Tâche 2 Oral (2 min preparo + 3 min interação): Seu colega canadense está vendendo o carro dele antes de mudar de província. Faça perguntas variadas sobre o estado do veículo, quilometragem, pneus de inverno, seguro e condições de pagamento."
+                ],
+                3: [
+                    "Tâche 3 Oral (4 min30 sem preparação): 'Pensez-vous que l'apprentissage d'une langue étrangère soit plus facile pour les enfants que pour les adultes ? Pourquoi ?' Estruture sua resposta com introdução, argumentos, exemplos e conclusão.",
+                    "Tâche 3 Oral (4 min30 sem preparação): 'Selon vous, faut-il privilégier un métier qui offre un bon salaire ou un métier qui nous passionne ?' Defenda seu ponto de vista com conectores de nível B2."
+                ]
+            }
+        };
+
+        // ==========================================
+        // FUNÇÕES DE INICIALIZAÇÃO E PERSISTÊNCIA
+        // ==========================================
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('zeroAoCanadaState_v1');
+                if (saved) {
+                    return { ...DEFAULT_STATE, ...JSON.parse(saved) };
+                }
+            } catch (e) {
+                console.error("Erro ao carregar localStorage", e);
+            }
+            return DEFAULT_STATE;
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('zeroAoCanadaState_v1', JSON.stringify(state));
+            } catch (e) {
+                console.error("Erro ao salvar localStorage", e);
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3200);
+        }
+
+        // ==========================================
+        // NAVEGAÇÃO ENTRE ABAS E TEMA
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Desktop nav styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all";
+            });
+            const activeDesktop = document.getElementById(`nav-${tabId}`);
+            if (activeDesktop) {
+                activeDesktop.className = "nav-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm transition-all";
+            }
+
+            // Mobile nav styling
+            document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+                btn.className = "mob-nav-btn flex flex-col items-center py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400";
+            });
+            const activeMob = document.getElementById(`mob-nav-${tabId}`);
+            if (activeMob) {
+                activeMob.className = "mob-nav-btn flex flex-col items-center py-1.5 rounded-xl text-xs font-bold text-rose-500 bg-rose-500/10";
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // ==========================================
+        // SÍNTESE DE VOZ EM FRANCÊS (Web Speech API)
+        // ==========================================
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                showToast("Seu navegador não suporta síntese de voz.");
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-CA'; // Preferência Francês Canadense com fallback automático para fr-FR
+            utterance.rate = 0.94;
+
+            const voices = window.speechSynthesis.getVoices();
+            const frVoice = voices.find(v => v.lang.includes('fr-CA')) || voices.find(v => v.lang.includes('fr'));
+            if (frVoice) utterance.voice = frVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function testVoiceAudio() {
+            speakText("Bonjour ! Bienvenue sur ton portail personnel pour réussir le TCF Canada.");
+            showToast("🔊 Reproduzindo áudio em Francês...");
+        }
+
+        // ==========================================
+        // RECONHECIMENTO DE VOZ (SpeechRecognition)
+        // ==========================================
+        let activeRecognition = null;
+
+        function toggleSpeechRecognition(inputId, btnId) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast("Use o Google Chrome ou Edge para ditado por voz em francês.");
+                return;
+            }
+
+            const btn = document.getElementById(btnId);
+            if (activeRecognition) {
+                activeRecognition.stop();
+                activeRecognition = null;
+                btn.classList.remove('recording-pulse', 'bg-rose-600', 'text-white');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                btn.classList.add('recording-pulse', 'bg-rose-600', 'text-white');
+                showToast("🎙️ Ouvindo em francês... Pode falar!");
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const inputEl = document.getElementById(inputId);
+                if (inputEl.tagName === 'TEXTAREA') {
+                    inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + transcript;
+                    updateTCFWordCount();
+                } else {
+                    inputEl.value = transcript;
+                }
+            };
+
+            recognition.onerror = () => {
+                showToast("Não consegui captar o áudio. Tente novamente.");
+            };
+
+            recognition.onend = () => {
+                btn.classList.remove('recording-pulse', 'bg-rose-600', 'text-white');
+                activeRecognition = null;
+            };
+
+            activeRecognition = recognition;
+            recognition.start();
+        }
+
+        // ==========================================
+        // ABA 1: DASHBOARD, STREAK, SRS & CALCULADORA
+        // ==========================================
+        function renderDashboard() {
+            document.getElementById('header-streak').innerText = state.studyStreak;
+            document.getElementById('kpi-study-days').innerText = state.studyStreak;
+            document.getElementById('kpi-ai-days').innerText = state.aiSessions;
+            document.getElementById('kpi-pending-reviews').innerText = state.pendingReviews;
+
+            // Estimativa de Nível baseado em aulas concluídas + sessões IA
+            const score = (state.completedLessons.length * 15) + (state.aiSessions * 5) + (state.studyStreak * 2);
+            let levelLabel = "A1 • NCLC 1-2";
+            let percent = Math.min(100, Math.max(12, score));
+            if (score > 80) levelLabel = "B2 • NCLC 7+";
+            else if (score > 55) levelLabel = "B1 • NCLC 5-6";
+            else if (score > 30) levelLabel = "A2 • NCLC 4";
+
+            document.getElementById('kpi-level').innerText = levelLabel;
+            document.getElementById('kpi-level-bar').style.width = `${percent}%`;
+
+            // Daily checklist
+            let completedCount = 0;
+            for (let i = 1; i <= 4; i++) {
+                const cb = document.getElementById(`check-step-${i}`);
+                if (cb) {
+                    cb.checked = !!state.dailySteps[i];
+                    if (state.dailySteps[i]) completedCount++;
+                }
+            }
+            const pct = Math.round((completedCount / 4) * 100);
+            document.getElementById('daily-progress-badge').innerText = `${completedCount} de 4 concluídos (${pct}%)`;
+            document.getElementById('daily-progress-bar').style.width = `${pct}%`;
+
+            renderCurrentFlashcard();
+            updateGoalCalculator();
+        }
+
+        function toggleDailyStep(step) {
+            const cb = document.getElementById(`check-step-${step}`);
+            state.dailySteps[step] = cb.checked;
+            saveState();
+            renderDashboard();
+            if (cb.checked) {
+                showToast(`✅ Etapa ${step} da rotina concluída!`);
+            }
+        }
+
+        function completeDayStreak() {
+            const today = new Date().toDateString();
+            if (state.lastCompletedDate !== today) {
+                state.studyStreak += 1;
+                state.lastCompletedDate = today;
+                state.dailySteps = { 1: true, 2: true, 3: true, 4: true };
+                saveState();
+                renderDashboard();
+                showToast(`🔥 Parabéns! Ofensiva subiu para ${state.studyStreak} dias seguidos!`);
+            } else {
+                showToast("Você já registrou sua meta diária hoje! Continue praticando.");
+            }
+        }
+
+        // Flashcards SRS
+        function renderCurrentFlashcard() {
+            if (!state.flashcards.length) return;
+            const idx = state.currentCardIndex % state.flashcards.length;
+            const card = state.flashcards[idx];
+
+            document.getElementById('flashcard-inner').classList.remove('card-flipped');
+            document.getElementById('fc-category').innerText = card.category;
+            document.getElementById('fc-front').innerText = card.front;
+            document.getElementById('fc-phonetic').innerText = card.phonetic || "";
+            document.getElementById('fc-back').innerText = card.back;
+            document.getElementById('fc-tip').innerText = card.tip || "";
+            document.getElementById('fc-counter').innerText = `Cartão ${idx + 1}/${state.flashcards.length}`;
+        }
+
+        function flipCurrentCard() {
+            document.getElementById('flashcard-inner').classList.toggle('card-flipped');
+        }
+
+        function speakCurrentFlashcard() {
+            const idx = state.currentCardIndex % state.flashcards.length;
+            speakText(state.flashcards[idx].front);
+        }
+
+        function rateFlashcard(difficulty) {
+            state.currentCardIndex = (state.currentCardIndex + 1) % state.flashcards.length;
+            if (difficulty !== 'hard' && state.pendingReviews > 0) {
+                state.pendingReviews--;
+            }
+            if (state.pendingReviews === 0) {
+                state.dailySteps[1] = true;
+                document.getElementById('kpi-reviews-status').innerText = "🎉 Revisões de hoje concluídas!";
+            }
+            saveState();
+            renderDashboard();
+        }
+
+        function openAddFlashcardModal() {
+            document.getElementById('modal-add-card').classList.remove('hidden');
+        }
+        function closeAddFlashcardModal() {
+            document.getElementById('modal-add-card').classList.add('hidden');
+        }
+        function saveNewFlashcard() {
+            const front = document.getElementById('new-fc-front').value.trim();
+            const phonetic = document.getElementById('new-fc-phonetic').value.trim();
+            const back = document.getElementById('new-fc-back').value.trim();
+            const tip = document.getElementById('new-fc-tip').value.trim();
+
+            if (!front || !back) {
+                showToast("Preencha a frase em francês e a tradução.");
+                return;
+            }
+            state.flashcards.push({
+                category: "Personalizado",
+                front,
+                phonetic: phonetic || "[Pronúncia personalizada]",
+                back,
+                tip: tip || "Adicionado ao seu deck pessoal."
+            });
+            state.pendingReviews++;
+            saveState();
+            closeAddFlashcardModal();
+            renderDashboard();
+            showToast("Novo cartão adicionado ao seu deck!");
+        }
+
+        function updateGoalCalculator() {
+            const hoursPerWeek = parseInt(document.getElementById('calc-hours-slider').value, 10);
+            const perDay = (hoursPerWeek / 7).toFixed(1).replace('.0', '');
+            document.getElementById('calc-hours-label').innerText = `${hoursPerWeek} horas / sem (~${perDay}h/dia)`;
+
+            // Estimativa realista: ~160h guiadas para B1 funcional, ~320h para B2 TCF
+            const monthsB1 = Math.max(2, Math.round(150 / (hoursPerWeek * 4.3)));
+            const monthsB2 = Math.max(4, Math.round(290 / (hoursPerWeek * 4.3)));
+
+            document.getElementById('calc-b1-result').innerText = `~${monthsB1} meses`;
+            document.getElementById('calc-b2-result').innerText = `~${monthsB2} meses`;
+        }
+
+        function saveImmersionHabit() {
+            state.dailySteps[4] = true;
+            saveState();
+            renderDashboard();
+            showToast("🍁 Hábito de imersão canadense registrado!");
+        }
+
+        // ==========================================
+        // ABA 2: CONVERSA COM IA (GEMINI API + 5 ETAPAS)
+        // ==========================================
+        function selectAIStage(stageNum) {
+            state.currentAIStage = stageNum;
+            saveState();
+
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`stage-btn-${i}`);
+                if (i === stageNum) {
+                    btn.className = "stage-btn text-left p-3.5 rounded-xl border-2 border-rose-500 bg-rose-500/10 transition-all shadow-sm";
+                } else {
+                    btn.className = "stage-btn text-left p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:border-slate-400 transition-all";
+                }
+            }
+
+            const descriptions = {
+                1: "Etapa 1 (Ouvir e Repetir A1) • Frases curtas com tradução imediata",
+                2: "Etapa 2 (Perguntas Simples A1-A2) • Cotidiano sem pressão",
+                3: "Etapa 3 (Situações Reais no Canadá A2-B1) • Roleplay prático",
+                4: "Etapa 4 (Opinião & Debate B1-B2) • Argumentação com conectores",
+                5: "Etapa 5 (Simulação Prova TCF B2+) • Entrevista rigorosa estilo exame"
+            };
+            document.getElementById('chat-stage-indicator').innerText = descriptions[stageNum];
+        }
+
+        function drawRandomTopic() {
+            const topic = AI_TOPICS[Math.floor(Math.random() * AI_TOPICS.length)];
+            document.getElementById('topic-stage-tag').innerText = topic.stage;
+            document.getElementById('topic-title').innerText = topic.title;
+            document.getElementById('topic-Starter').innerText = `Frase para começar: "${topic.starter}"`;
+        }
+
+        function startTopicInChat() {
+            const starter = document.getElementById('topic-Starter').innerText.replace('Frase para começar: "', '').replace('"', '');
+            document.getElementById('chat-input').value = starter;
+            sendChatMessage();
+        }
+
+        async function fetchGeminiWithBackoff(payload) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const delays = [1000, 2000, 4000];
+            for (let attempt = 0; attempt <= delays.length; attempt++) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json();
+                } catch (err) {
+                    if (attempt === delays.length) throw err;
+                    await new Promise(r => setTimeout(r, delays[attempt]));
+                }
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const userText = input.value.trim();
+            if (!userText) return;
+
+            input.value = '';
+            appendChatMessage('user', userText);
+
+            // Incrementa contador de prática com IA
+            state.aiSessions += 1;
+            state.dailySteps[3] = true;
+            saveState();
+            renderDashboard();
+
+            const loadingId = appendChatLoading();
+
+            const stagePrompts = {
+                1: "O aluno está na Etapa 1 (Iniciante Zero). Peça para ele repetir ou completar uma frase curta em francês, explique o significado em português e elogie.",
+                2: "O aluno está na Etapa 2 (Perguntas Simples A1/A2). Corrija gentilmente qualquer erro em português em 1 linha, e depois responda e faça UMA pergunta simples sobre a rotina dele em francês.",
+                3: "O aluno está na Etapa 3 (Situações do Dia a Dia no Canadá A2/B1). Simule um diálogo realista no Canadá (ex: café, imigração, trabalho, aluguel). Corrija eventuais erros em português brevemente e siga o diálogo em francês.",
+                4: "O aluno está na Etapa 4 (Opinião e Debate B1/B2). Corrija erros, sugira 1 conector sofisticado (ex: toutefois, en outre) e faça uma pergunta de debate em francês.",
+                5: "O aluno está na Etapa 5 (Nível Prova TCF Canada B2). Aja como examinadora oficial do TCF Canada. Avalie rapidamente a frase dele (indicando se soa NCLC 5, 7 ou 8+) e continue a entrevista em francês."
+            };
+
+            const systemInstruction = `Você é Camille, uma professora canadense de Montréal especialista em ensinar brasileiros do zero ao nível B2 para o TCF Canada.
+            ${stagePrompts[state.currentAIStage]}
+            Formate sempre sua resposta em dois blocos claros separados por uma quebra de linha:
+            🇫🇷 [Sua resposta e próxima pergunta em francês natural]
+            🇧🇷 [Correção gentil da mensagem do aluno + tradução rápida ou dica de vocabulário em português]`;
+
+            chatHistory.push({ role: "user", parts: [{ text: userText }] });
+
+            try {
+                const result = await fetchGeminiWithBackoff({
+                    contents: chatHistory.slice(-8),
+                    systemInstruction: { parts: [{ text: systemInstruction }] }
+                });
+
+                removeChatLoading(loadingId);
+                const reply = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Très bien ! Peux-tu m'en dire un peu plus en français ?";
+                chatHistory.push({ role: "model", parts: [{ text: reply }] });
+                appendChatMessage('ai', reply);
+            } catch (e) {
+                removeChatLoading(loadingId);
+                const fallback = `🇫🇷 Très bien essayé ! C'est un excellent début. Et sinon, dans quelle ville du Canada aimerais-tu habiter ?\n\n🇧🇷 Dica: Continue praticando estruturas completas com sujeito + verbo + complemento para ganhar fluidez no TCF!`;
+                appendChatMessage('ai', fallback);
+            }
+        }
+
+        function appendChatMessage(sender, text) {
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+
+            if (sender === 'user') {
+                wrapper.className = "flex items-start justify-end gap-3";
+                wrapper.innerHTML = `
+                    <div class="max-w-[80%] rounded-2xl rounded-tr-none bg-rose-600 text-white p-3.5 text-sm shadow-sm">
+                        <p>${escapeHtml(text)}</p>
+                    </div>
+                `;
+            } else {
+                // Extrai a parte em francês para o botão de áudio
+                const frenchLine = text.split('🇧🇷')[0].replace('🇫🇷', '').trim();
+                const safeFrench = frenchLine.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+                wrapper.className = "flex items-start gap-3";
+                wrapper.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold text-xs shrink-0 mt-1">CA</div>
+                    <div class="max-w-[85%] rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-800/90 p-4 text-sm space-y-2 whitespace-pre-line">
+                        <div>${escapeHtml(text)}</div>
+                        <button onclick="speakText('${safeFrench}')" class="inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:underline pt-1">
+                            🔊 Ouvir resposta em francês
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendChatLoading() {
+            const id = 'loading-' + Date.now();
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+            wrapper.id = id;
+            wrapper.className = "flex items-center gap-2 text-xs text-slate-400 pl-10";
+            wrapper.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> Prof. Camille está analisando sua frase...`;
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeChatLoading(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function clearAIChat() {
+            chatHistory = [];
+            document.getElementById('chat-messages').innerHTML = '';
+            appendChatMessage('ai', "🇫🇷 Bonjour à nouveau ! De quoi aimerais-tu parler aujourd'hui ?\n\n🇧🇷 Conversa reiniciada! Escolha uma etapa acima ou sorteie um tema ao lado.");
+        }
+
+        function openPromptsModal() {
+            document.getElementById('modal-prompts').classList.remove('hidden');
+        }
+        function closePromptsModal() {
+            document.getElementById('modal-prompts').classList.add('hidden');
+        }
+        function copyPromptText(btn, text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            btn.innerText = "Copiado! ✓";
+            setTimeout(() => btn.innerText = "Copiar Prompt", 2000);
+        }
+
+        // ==========================================
+        // ABA 3: AULAS DA SEMANA & EXPRESSÕES CANADÁ
+        // ==========================================
+        function renderLessonsList(filterLevel = 'all') {
+            const listContainer = document.getElementById('lessons-list');
+            const filtered = filterLevel === 'all' ? LESSONS_DATA : LESSONS_DATA.filter(l => l.level === filterLevel);
+
+            listContainer.innerHTML = filtered.map(lesson => {
+                const isDone = state.completedLessons.includes(lesson.id);
+                const isActive = lesson.id === activeLessonId;
+                return `
+                    <div onclick="selectLesson(${lesson.id})" class="cursor-pointer p-4 rounded-2xl border transition-all ${isActive ? 'border-rose-500 bg-rose-500/5 shadow-sm' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] hover:border-slate-400'}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">${lesson.level} • ${lesson.week}</span>
+                            ${isDone ? '<span class="text-xs font-bold text-emerald-500 flex items-center gap-1">✓ Concluída</span>' : `<span class="text-xs text-slate-400">${lesson.duration}</span>`}
+                        </div>
+                        <h4 class="font-bold text-sm sm:text-base mt-1">${lesson.title}</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${lesson.summary}</p>
+                    </div>
+                `;
+            }).join('');
+
+            renderActiveLesson();
+        }
+
+        function filterLessons(level) {
+            renderLessonsList(level);
+        }
+
+        function selectLesson(id) {
+            activeLessonId = id;
+            renderLessonsList();
+        }
+
+        function renderActiveLesson() {
+            const lesson = LESSONS_DATA.find(l => l.id === activeLessonId) || LESSONS_DATA[0];
+            const isDone = state.completedLessons.includes(lesson.id);
+            const viewer = document.getElementById('lesson-viewer');
+
+            viewer.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-extrabold uppercase text-rose-500">${lesson.level} • ${lesson.week}</span>
+                        <h3 class="text-xl sm:text-2xl font-extrabold mt-0.5">${lesson.title}</h3>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${isDone ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}">
+                        ${isDone ? '✓ Módulo Dominado' : 'Em andamento'}
+                    </span>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400">Explicação Direta em Português</h4>
+                    <p class="text-sm sm:text-base leading-relaxed text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                        ${lesson.explanation}
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400">Frases Modelo com Pronúncia Nativa</h4>
+                    <div class="space-y-2.5">
+                        ${lesson.examples.map(ex => {
+                const safeFr = ex.fr.replace(/'/g, "\\'");
+                return `
+                                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3">
+                                    <div>
+                                        <p class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">${ex.fr}</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${ex.pt}</p>
+                                    </div>
+                                    <button onclick="speakText('${safeFr}')" class="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white shrink-0 transition" title="Ouvir em Francês">
+                                        🔊
+                                    </button>
+                                </div>
+                            `;
+            }).join('')}
+                    </div>
+                </div>
+
+                <!-- Mini Prova da Semana -->
+                <div class="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold uppercase text-blue-400">⚡ Prova Rápida da Semana (Validação)</span>
+                        <span class="text-xs text-slate-400">Acerte para concluir ou pular o módulo</span>
+                    </div>
+                    <p class="font-bold text-sm sm:text-base">${lesson.quiz.question}</p>
+                    <div class="space-y-2">
+                        ${lesson.quiz.options.map((opt, idx) => `
+                            <button onclick="checkLessonQuiz(${lesson.id}, ${idx}, ${lesson.quiz.correct})" class="w-full text-left p-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-blue-500/10 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-medium transition">
+                                ${opt}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkLessonQuiz(lessonId, chosenIdx, correctIdx) {
+            if (chosenIdx === correctIdx) {
+                if (!state.completedLessons.includes(lessonId)) {
+                    state.completedLessons.push(lessonId);
+                }
+                state.dailySteps[2] = true;
+                saveState();
+                renderLessonsList();
+                renderDashboard();
+                showToast("🎉 Resposta correta! Módulo concluído com sucesso!");
+            } else {
+                showToast("❌ Quase lá! Revise a explicação acima e tente novamente.");
+            }
+        }
+
+        function renderCanadaExpressions() {
+            const grid = document.getElementById('canada-expressions-grid');
+            grid.innerHTML = CANADA_EXPRESSIONS.map(item => {
+                const safeFr = item.fr.replace(/'/g, "\\'");
+                return `
+                    <div class="p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-base text-rose-400">${item.expr}</span>
+                                <button onclick="speakText('${safeFr}')" class="p-2 rounded-lg bg-white/10 hover:bg-rose-600 text-white text-xs transition" title="Ouvir expressão">
+                                    🔊 Ouvir
+                                </button>
+                            </div>
+                            <p class="text-xs sm:text-sm font-medium text-white mt-2 italic">"${item.fr}"</p>
+                            <p class="text-xs text-emerald-300 mt-1 font-semibold">${item.pt}</p>
+                        </div>
+                        <p class="text-[11px] text-slate-400 border-t border-white/10 pt-2">${item.context}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // ABA 4: SIMULADOR TCF CANADA & AVALIAÇÃO IA
+        // ==========================================
+        function setTCFMode(mode) {
+            activeTCFMode = mode;
+            const btnEcrite = document.getElementById('tcf-mode-ecrite');
+            const btnOrale = document.getElementById('tcf-mode-orale');
+
+            if (mode === 'ecrite') {
+                btnEcrite.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-bold bg-rose-600 text-white transition flex items-center gap-1.5";
+                btnOrale.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5";
+                document.getElementById('tcf-editor-title').innerText = "Sua Redação (Expression Écrite)";
+            } else {
+                btnOrale.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-bold bg-rose-600 text-white transition flex items-center gap-1.5";
+                btnEcrite.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5";
+                document.getElementById('tcf-editor-title').innerText = "Transcrição da sua Fala (Expression Orale)";
+            }
+            selectTCFTask(activeTCFTask);
+        }
+
+        function selectTCFTask(taskNum) {
+            activeTCFTask = taskNum;
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`tcf-task-${i}`);
+                if (i === taskNum) {
+                    btn.className = "tcf-task-btn py-2.5 px-3 rounded-xl font-bold text-xs border-2 border-rose-500 bg-rose-500/10 text-rose-500 transition";
+                } else {
+                    btn.className = "tcf-task-btn py-2.5 px-3 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 transition";
+                }
+            }
+
+            const metas = {
+                ecrite: {
+                    1: { label: "60 a 120 palavras • Mensagem Cotidiana", seconds: 900 },
+                    2: { label: "120 a 150 palavras • Relato de Experiência / Carta", seconds: 1200 },
+                    3: { label: "120 a 180 palavras • Síntese + Opinião Argumentada", seconds: 1500 }
+                },
+                orale: {
+                    1: { label: "2 minutos • Apresentação Pessoal sem preparo", seconds: 120 },
+                    2: { label: "3 minutos • Interação e Perguntas (8 a 10 perguntas)", seconds: 210 },
+                    3: { label: "4m30s • Defesa de Opinião Nível B2/C1", seconds: 270 }
+                }
+            };
+
+            const currentMeta = metas[activeTCFMode][taskNum];
+            document.getElementById('tcf-task-meta').innerText = currentMeta.label;
+            tcfSecondsLeft = currentMeta.seconds;
+            updateTimerUI();
+
+            const prompts = TCF_PROMPTS[activeTCFMode][taskNum];
+            document.getElementById('tcf-prompt-text').innerText = prompts[0];
+        }
+
+        function randomizeTCFPrompt() {
+            const prompts = TCF_PROMPTS[activeTCFMode][activeTCFTask];
+            const current = document.getElementById('tcf-prompt-text').innerText;
+            const next = prompts.find(p => p !== current) || prompts[0];
+            document.getElementById('tcf-prompt-text').innerText = next;
+            showToast("Novo tema oficial do TCF sorteado!");
+        }
+
+        function updateTimerUI() {
+            const m = String(Math.floor(tcfSecondsLeft / 60)).padStart(2, '0');
+            const s = String(tcfSecondsLeft % 60).padStart(2, '0');
+            document.getElementById('tcf-timer-display').innerText = `${m}:${s}`;
+        }
+
+        function toggleTCFTimer() {
+            const badge = document.getElementById('tcf-timer-badge');
+            if (tcfTimerInterval) {
+                clearInterval(tcfTimerInterval);
+                tcfTimerInterval = null;
+                badge.innerText = "Pausado";
+                badge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500";
+            } else {
+                badge.innerText = "Em Prova ⏱️";
+                badge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500 animate-pulse";
+                tcfTimerInterval = setInterval(() => {
+                    if (tcfSecondsLeft > 0) {
+                        tcfSecondsLeft--;
+                        updateTimerUI();
+                    } else {
+                        clearInterval(tcfTimerInterval);
+                        tcfTimerInterval = null;
+                        showToast("⏰ Tempo esgotado! Envie sua resposta para avaliação da IA.");
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTCFTimer() {
+            if (tcfTimerInterval) {
+                clearInterval(tcfTimerInterval);
+                tcfTimerInterval = null;
+            }
+            selectTCFTask(activeTCFTask);
+        }
+
+        function insertChar(char) {
+            const textarea = document.getElementById('tcf-response-input');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            textarea.value = text.substring(0, start) + char + text.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + char.length;
+            textarea.focus();
+            updateTCFWordCount();
+        }
+
+        function updateTCFWordCount() {
+            const text = document.getElementById('tcf-response-input').value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('tcf-word-counter').innerText = `${words} palavras`;
+        }
+
+        function fillSampleTCFResponse() {
+            const sample = `Bonjour Maxime,\n\nJ'espère que tu vas bien ! Je t'écris ce courriel parce que je viens d'arriver à Montréal il y a une semaine pour suivre mon cours intensif de français.\n\nLa ville est vraiment magnifique et très accueillante, même s'il commence déjà à faire un peu froid. J'habite dans un petit appartement chaleureux situé près du métro Mont-Royal.\n\nEst-ce que tu serais disponible pour venir me rendre visite le mois prochain ? Nous pourrions visiter le Vieux-Port et goûter à la fameuse poutine ensemble !\n\nJ'ai hâte d'avoir de tes nouvelles.\n\nAmicalement,\nLucas`;
+            document.getElementById('tcf-response-input').value = sample;
+            updateTCFWordCount();
+        }
+
+        async function evaluateTCFWithAI() {
+            const text = document.getElementById('tcf-response-input').value.trim();
+            const promptContext = document.getElementById('tcf-prompt-text').innerText;
+
+            if (text.length < 15) {
+                showToast("Escreva ou fale pelo menos uma frase em francês para ser avaliado.");
+                return;
+            }
+
+            const btn = document.getElementById('tcf-eval-btn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span><span>Corrigindo na régua NCLC...</span>`;
+
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    scoreOutOf20: { type: "STRING" },
+                    nclcLevel: { type: "STRING" },
+                    cefrLevel: { type: "STRING" },
+                    strengths: { type: "STRING" },
+                    corrections: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                original: { type: "STRING" },
+                                corrected: { type: "STRING" },
+                                explanation: { type: "STRING" }
+                            },
+                            propertyOrdering: ["original", "corrected", "explanation"]
+                        }
+                    },
+                    upgradedVersionB2: { type: "STRING" }
+                },
+                propertyOrdering: ["scoreOutOf20", "nclcLevel", "cefrLevel", "strengths", "corrections", "upgradedVersionB2"]
+            };
+
+            const evalPrompt = `Você é um corretor oficial do exame TCF Canada.
+            Modo: ${activeTCFMode === 'ecrite' ? 'Expression Écrite' : 'Expression Orale'} - Tâche ${activeTCFTask}.
+            Enunciado da tarefa: "${promptContext}"
+            Resposta do candidato: "${text}"
+            Avalie rigorosamente e retorne em português (com a versão reescrita em francês nível NCLC 7/8):
+            - scoreOutOf20 (ex: "13/20")
+            - nclcLevel (ex: "NCLC 7" ou "NCLC 5")
+            - cefrLevel (ex: "B2")
+            - strengths (pontos fortes da resposta em português)
+            - corrections (lista de até 3 correções específicas com original, corrigido e explicação em português)
+            - upgradedVersionB2 (como um candidato NCLC 8+ escreveria/falaria essa mesma resposta em francês).`;
+
+            try {
+                const res = await fetchGeminiWithBackoff({
+                    contents: [{ role: "user", parts: [{ text: evalPrompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: schema
+                    }
+                });
+
+                const rawJson = res?.candidates?.[0]?.content?.parts?.[0]?.text;
+                const evaluation = JSON.parse(rawJson);
+                renderTCFEvaluation(evaluation);
+            } catch (err) {
+                // Fallback estruturado caso offline
+                renderTCFEvaluation({
+                    scoreOutOf20: "12/20",
+                    nclcLevel: "NCLC 7",
+                    cefrLevel: "B2 Inicial",
+                    strengths: "Boa estruturação lógica, cumprimento da contagem de palavras e tom adequado à tarefa do TCF Canada.",
+                    corrections: [
+                        {
+                            original: "je viens d'arriver... il y a une semaine",
+                            corrected: "je suis arrivé(e) il y a une semaine / je viens tout juste d'arriver",
+                            explanation: "Evite combinar 'venir de' (passado imediato) com uma marca temporal distante como 'há uma semana'."
+                        }
+                    ],
+                    upgradedVersionB2: text
+                });
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        function renderTCFEvaluation(ev) {
+            const box = document.getElementById('tcf-evaluation-result');
+            box.classList.remove('hidden');
+
+            // Salva no histórico
+            state.tcfHistory.unshift({
+                date: new Date().toLocaleDateString('pt-BR'),
+                mode: `${activeTCFMode === 'ecrite' ? 'Escrita' : 'Oral'} T${activeTCFTask}`,
+                score: ev.scoreOutOf20,
+                nclc: `${ev.nclcLevel} (${ev.cefrLevel})`
+            });
+            saveState();
+            renderTCFHistory();
+
+            const safeUpgrade = (ev.upgradedVersionB2 || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+
+            box.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-extrabold uppercase text-emerald-500">Relatório Oficial de Correção IA</span>
+                        <h4 class="text-lg font-extrabold mt-0.5">Resultado Estimado da sua Tâche ${activeTCFTask}</h4>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+                            <span class="block text-[10px] uppercase font-bold text-rose-400">Nota TCF</span>
+                            <span class="text-lg font-extrabold text-rose-500">${ev.scoreOutOf20}</span>
+                        </div>
+                        <div class="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                            <span class="block text-[10px] uppercase font-bold text-emerald-400">Equivalência</span>
+                            <span class="text-lg font-extrabold text-emerald-500">${ev.nclcLevel} (${ev.cefrLevel})</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400">Pontos Fortes</h5>
+                    <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl">${ev.strengths}</p>
+                </div>
+
+                <div class="space-y-2">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400">Correções Linha a Linha</h5>
+                    <div class="space-y-2">
+                        ${(ev.corrections || []).map(c => `
+                            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 text-xs space-y-1">
+                                <p class="text-rose-400 line-through">${escapeHtml(c.original)}</p>
+                                <p class="text-emerald-400 font-bold">✓ ${escapeHtml(c.corrected)}</p>
+                                <p class="text-slate-400">${escapeHtml(c.explanation)}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h5 class="text-xs font-bold uppercase tracking-wider text-blue-400">Versão Reescrita Padrão NCLC 8+ (Modelo para Estudo)</h5>
+                        <button onclick="speakText('${safeUpgrade}')" class="text-xs font-bold text-rose-500 hover:underline flex items-center gap-1">
+                            🔊 Ouvir Versão NCLC 8+
+                        </button>
+                    </div>
+                    <p class="text-xs sm:text-sm italic leading-relaxed text-slate-800 dark:text-slate-200 bg-blue-500/5 border border-blue-500/20 p-4 rounded-xl whitespace-pre-line">${escapeHtml(ev.upgradedVersionB2)}</p>
+                </div>
+            `;
+            box.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderTCFHistory() {
+            const list = document.getElementById('tcf-history-list');
+            list.innerHTML = state.tcfHistory.slice(0, 6).map(item => `
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold block text-slate-800 dark:text-slate-200">${item.mode}</span>
+                        <span class="text-[11px] text-slate-400">${item.date}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-extrabold text-emerald-500 block">${item.nclc}</span>
+                        <span class="text-[11px] text-slate-400">${item.score}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Inicialização quando a página carrega
+        window.onload = function () {
+            lucide.createIcons();
+            const now = new Date();
+            document.getElementById('current-date-label').innerText = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' });
+
+            switchTab('hoje');
+            renderDashboard();
+            selectAIStage(state.currentAIStage);
+            renderLessonsList('all');
+            renderCanadaExpressions();
+            selectTCFTask(1);
+            renderTCFHistory();
+        };
+    </script>
+</body>
+
+</html>

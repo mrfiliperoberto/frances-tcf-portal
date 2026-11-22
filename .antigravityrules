@@ -1,0 +1,11 @@
+# Regras de Arquitetura do Projeto: Portal Francês B2 & TCF Canada
+
+## Stack Tecnológica
+- Front-end: React 19 + Vite + Tailwind CSS + Framer Motion (para transições de abas e flip de flashcards) + Lucide React (ícones).
+- Armazenamento Local / Backend: Estruturar camada de serviços (`src/services/`) desacoplada usando IndexedDB (via Dexie.js) ou API REST Laravel/SQLite.
+- Design System: Dark-mode editorial refinado (fundo slate-950/zinc-950), tipografia limpa (Inter para UI, Playfair Display para títulos, Fira Code para contadores e métricas).
+
+## Diretrizes para o Agente
+1. Nunca exponha chaves de API hardcoded no código. Use variáveis de ambiente (`.env` com `VITE_GEMINI_API_KEY`).
+2. Sempre que criar ou alterar um componente visual, utilize o Browser Agent integrado para abrir `http://localhost:5173`, clicar na aba correspondente e verificar se há erros no Console antes de concluir a missão.
+3. Mantenha a síntese de voz (`fr-CA` e `fr-FR`) encapsulada em um custom hook `useSpeech.js`.
