@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import { INITIAL_FLASHCARDS } from '../data/initialFlashcards';
 import { DAILY_DICTIONARY_SEED } from '../data/dailyDictionarySeed';
+import { PRONUNCIATION_DICT } from '../data/pronunciationDict';
 import { CARTOON_SPRINTS_SEED } from '../data/cartoonSeed';
 import { LITTLE_PRINCE_SEED } from '../data/littlePrinceSeed';
 import { VIDEO_LESSON_SEED } from '../data/videoLessonSeed';
@@ -147,6 +148,7 @@ export function normalizeSeedWord(seedItem, existingRecord = null) {
     : [];
   const isMastered = Boolean(existingRecord?.isMastered ?? seedItem.isMastered ?? false);
   const estudado = Boolean(existingRecord?.estudado || studiedAt || isMastered);
+  const reviewCount = Number(existingRecord?.reviewCount ?? seedItem.reviewCount ?? 0);
 
   return {
     id: seedItem.id,
@@ -156,6 +158,7 @@ export function normalizeSeedWord(seedItem, existingRecord = null) {
     level,
     category,
     humanAudioUrl,
+    reviewCount,
     // Aliases para compatibilidade total
     palavra: word,
     fonetica_ipa: ipa,
@@ -196,11 +199,13 @@ export function normalizeSeedWord(seedItem, existingRecord = null) {
 export async function syncDailyDictionarySeed() {
   try {
     await ensureDbOpen();
+    const combinedSeed = [...DAILY_DICTIONARY_SEED, ...PRONUNCIATION_DICT];
     const count = await db.dailyWords.count();
 
     if (count === 0) {
-      const initialRecords = DAILY_DICTIONARY_SEED.map((item) => ({
+      const initialRecords = combinedSeed.map((item) => ({
         ...normalizeSeedWord(item),
+        reviewCount: Number(item.reviewCount ?? 0),
         isMastered: false,
         reviewDates: [],
         studiedAt: null,
@@ -211,38 +216,47 @@ export async function syncDailyDictionarySeed() {
     }
 
     const existing = await db.dailyWords.toArray();
-    const hasValidLevelWords = existing.some(
-      (w) => (w.level || w.nivel) && (w.word || w.palavra)
-    );
+    const existingById = new Map();
+    const existingByWord = new Map();
 
-    if (!hasValidLevelWords || existing.length < DAILY_DICTIONARY_SEED.length) {
-      const existingByWord = new Map();
-      existing.forEach((item) => {
-        const key = (item.word || item.palavra || '').toLowerCase().trim();
-        if (key) existingByWord.set(key, item);
-      });
+    existing.forEach((item) => {
+      if (item.id !== undefined && item.id !== null) {
+        existingById.set(String(item.id), item);
+      }
+      const key = (item.word || item.palavra || '').toLowerCase().trim();
+      if (key && !existingByWord.has(key)) {
+        existingByWord.set(key, item);
+      }
+    });
 
-      const mergedRecords = DAILY_DICTIONARY_SEED.map((seedItem) => {
-        const key = (seedItem.word || '').toLowerCase().trim();
-        const prev = existingByWord.get(key) || null;
-        const normalized = normalizeSeedWord(seedItem, prev);
-        return {
-          ...normalized,
-          isMastered: Boolean(normalized.isMastered ?? false),
-          reviewDates: Array.isArray(normalized.reviewDates) ? normalized.reviewDates : []
-        };
-      });
+    const recordsToUpsert = [];
+    const mergedRecords = combinedSeed.map((seedItem) => {
+      const prevById = existingById.get(String(seedItem.id));
+      const key = (seedItem.word || '').toLowerCase().trim();
+      const prev = prevById || existingByWord.get(key) || null;
+      const normalized = normalizeSeedWord(seedItem, prev);
+      const record = {
+        ...normalized,
+        reviewCount: Number(prev?.reviewCount ?? seedItem.reviewCount ?? 0),
+        isMastered: Boolean(normalized.isMastered ?? false),
+        reviewDates: Array.isArray(normalized.reviewDates) ? normalized.reviewDates : []
+      };
+      if (!prevById || typeof prevById.reviewCount !== 'number') {
+        recordsToUpsert.push(record);
+      }
+      return record;
+    });
 
-      await db.dailyWords.clear();
-      await db.dailyWords.bulkPut(mergedRecords);
-      return mergedRecords;
+    if (recordsToUpsert.length > 0) {
+      await db.dailyWords.bulkPut(recordsToUpsert);
     }
 
-    return existing.map((w) => normalizeSeedWord(w, w));
+    return mergedRecords;
   } catch (err) {
     console.error('Erro em syncDailyDictionarySeed, retornando seed em memória:', err);
-    return DAILY_DICTIONARY_SEED.map((item) => ({
+    return [...DAILY_DICTIONARY_SEED, ...PRONUNCIATION_DICT].map((item) => ({
       ...normalizeSeedWord(item),
+      reviewCount: Number(item.reviewCount ?? 0),
       isMastered: false,
       reviewDates: [],
       studiedAt: null,

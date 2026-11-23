@@ -14,6 +14,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { PRONUNCIATION_DICT } from '../../data/pronunciationDict';
+import { db, syncDailyDictionarySeed } from '../../services/db';
 import { useFrenchAudio } from '../../hooks/useFrenchAudio';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { evaluateShadowingAudio, getGeminiApiKey } from '../../services/geminiService';
@@ -76,11 +77,51 @@ function getSmartPhoneticTip(item) {
 }
 
 export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
+  // Lista de palavras sincronizada com o IndexedDB (incluindo reviewCount)
+  const [words, setWords] = useState(() =>
+    PRONUNCIATION_DICT.map((item) => ({
+      ...item,
+      reviewCount: item.reviewCount ?? 0
+    }))
+  );
+
   // Filtros do Topo
   const [selectedLevel, setSelectedLevel] = useState('Todos');
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [selectedLetter, setSelectedLetter] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Sincroniza reviewCount do IndexedDB (db.dailyWords) ao montar
+  useEffect(() => {
+    let isMounted = true;
+    async function loadWordsWithReviewCounts() {
+      try {
+        await syncDailyDictionarySeed();
+        const stored = await db.dailyWords.toArray();
+        const countById = new Map();
+        stored.forEach((record) => {
+          if (record && record.id !== undefined) {
+            countById.set(String(record.id), Number(record.reviewCount || 0));
+          }
+        });
+
+        if (isMounted) {
+          setWords(
+            PRONUNCIATION_DICT.map((item) => ({
+              ...item,
+              reviewCount: countById.get(String(item.id)) ?? 0
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Erro ao carregar reviewCount da Biblioteca de Pronúncia:', err);
+      }
+    }
+    loadWordsWithReviewCounts();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Estado de reprodução de áudio humano HTML5
   const htmlAudioRef = useRef(null);
@@ -148,7 +189,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   // Filtra as palavras com base em Nível, Categoria, Letra A-Z e Busca
   const filteredWords = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return PRONUNCIATION_DICT.filter((item) => {
+    return words.filter((item) => {
       const itemLetter = item.letter || getNormalizedFirstLetter(item.word);
       const matchLevel = selectedLevel === 'Todos' || item.level === selectedLevel;
       const matchCategory = selectedCategory === 'Todas' || item.category === selectedCategory;
@@ -162,14 +203,35 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
 
       return matchLevel && matchCategory && matchLetter && matchSearch;
     });
-  }, [selectedLevel, selectedCategory, selectedLetter, searchQuery]);
+  }, [words, selectedLevel, selectedCategory, selectedLetter, searchQuery]);
 
   /**
-   * Toca o áudio humano nativo via tag HTML5 <audio>.
+   * Toca o áudio humano nativo via tag HTML5 <audio> e incrementa reviewCount no IndexedDB.
    * Se falhar (CORS, 404, offline, URL vazia), aciona silenciosamente o fallback TTS (useFrenchAudio).
    */
   const handlePlayNativeAudio = useCallback(
-    async (item) => {
+    async (word) => {
+      // Incrementa reviewCount no Dexie (db.dailyWords) e atualiza o estado local imediatamente
+      try {
+        const currentWord = await db.dailyWords.get(word.id);
+        const newCount = (currentWord?.reviewCount || 0) + 1;
+        if (currentWord) {
+          await db.dailyWords.update(word.id, { reviewCount: newCount });
+        } else {
+          await db.dailyWords.put({ ...word, reviewCount: newCount });
+        }
+        setWords((prev) =>
+          prev.map((w) => (w.id === word.id ? { ...w, reviewCount: newCount } : w))
+        );
+      } catch (err) {
+        console.error('Erro ao atualizar reviewCount no IndexedDB:', err);
+        setWords((prev) =>
+          prev.map((w) =>
+            w.id === word.id ? { ...w, reviewCount: (w.reviewCount || 0) + 1 } : w
+          )
+        );
+      }
+
       if (htmlAudioRef.current) {
         try {
           htmlAudioRef.current.pause();
@@ -178,27 +240,27 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
       }
 
       const fallbackToTTS = () => {
-        setPlayingNativeId(item.id);
-        setAudioSourceBadge((prev) => ({ ...prev, [item.id]: 'tts' }));
-        speakText(cleanWordForSpeech(item.word), 0.88);
+        setPlayingNativeId(word.id);
+        setAudioSourceBadge((prev) => ({ ...prev, [word.id]: 'tts' }));
+        speakText(cleanWordForSpeech(word.word), 0.88);
         setTimeout(() => {
-          setPlayingNativeId((curr) => (curr === item.id ? null : curr));
+          setPlayingNativeId((curr) => (curr === word.id ? null : curr));
         }, 1200);
       };
 
-      if (!item.humanAudioUrl) {
+      if (!word.humanAudioUrl) {
         fallbackToTTS();
         return;
       }
 
-      setPlayingNativeId(item.id);
+      setPlayingNativeId(word.id);
 
       try {
         // Se for URL do Google Translate TTS, usa o proxy local /__tts para evitar bloqueio ORB/CORS do navegador
-        const isGoogleTts = item.humanAudioUrl.includes('translate.google.com/translate_tts');
+        const isGoogleTts = word.humanAudioUrl.includes('translate.google.com/translate_tts');
         const effectiveSrc = isGoogleTts
-          ? `/__tts?url=${encodeURIComponent(item.humanAudioUrl)}`
-          : item.humanAudioUrl;
+          ? `/__tts?url=${encodeURIComponent(word.humanAudioUrl)}`
+          : word.humanAudioUrl;
 
         const res = await fetch(effectiveSrc, { cache: 'force-cache' });
         const contentType = (res.headers.get('content-type') || '').toLowerCase();
@@ -226,7 +288,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
 
         audio.onended = () => {
           cleanupBlob();
-          setPlayingNativeId((curr) => (curr === item.id ? null : curr));
+          setPlayingNativeId((curr) => (curr === word.id ? null : curr));
         };
 
         audio.onerror = () => {
@@ -235,7 +297,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
         };
 
         await audio.play();
-        setAudioSourceBadge((prev) => ({ ...prev, [item.id]: 'human' }));
+        setAudioSourceBadge((prev) => ({ ...prev, [word.id]: 'human' }));
       } catch (_) {
         fallbackToTTS();
       }
@@ -514,8 +576,13 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-display font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white">
-                          {item.word}
+                        <h3 className="font-display font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white flex items-center">
+                          <span>{item.word}</span>
+                          {item.reviewCount > 0 && (
+                            <span className="text-xs text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-full ml-2">
+                              🎧 {item.reviewCount}x
+                            </span>
+                          )}
                         </h3>
                         <span className="px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-500 font-mono text-xs sm:text-sm font-bold border border-rose-500/20">
                           {item.ipa}
