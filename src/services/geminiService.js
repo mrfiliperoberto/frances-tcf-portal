@@ -1,32 +1,65 @@
 /**
  * Serviço de Integração Multimodal com a API Google Gemini
- * Suporta modelos Flash ('gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-3.8-flash')
  * com áudio bruto via inlineData base64 para avaliação fonética e conversação interativa.
+ *
+ * SEGURANÇA (Fase 1):
+ * - A única chave usada é a CHAVE PESSOAL que o próprio usuário cola em Configurações.
+ *   Ela fica no localStorage deste navegador, que NÃO é armazenamento secreto: qualquer
+ *   script executado nesta origem (extensões, XSS) consegue lê-la. É aceitável apenas
+ *   para uso pessoal, com a chave do próprio usuário, idealmente restrita por referrer/cota.
+ * - Nenhuma credencial é lida de `import.meta.env`: toda variável `VITE_*` é embutida no
+ *   bundle público em `dist/`. Uma credencial privada de servidor NUNCA deve ir para o cliente;
+ *   numa versão multiusuário as chamadas devem passar por um backend/proxy (ver README).
+ * - A chave é enviada no header `x-goog-api-key`, e não na URL (evita vazamento em logs/histórico).
  */
 
+/**
+ * Modelos verificados na documentação oficial (ai.google.dev, nov/2026):
+ * - gemini-3.8-flash: estável (GA), modelo Flash atual.
+ * - gemini-3.6-flash: geração anterior, ainda disponível para produção.
+ * - gemini-2.5-flash: estável, fallback de longo prazo.
+ * Removidos: gemini-3.5-flash e gemini-3.7-flash (descontinuados, apenas redirecionados),
+ * gemini-3-flash-preview (preview) e gemini-flash-latest (alias móvel, comportamento imprevisível).
+ */
+import {
+  GeminiResponseError,
+  extractCandidateText,
+  parseJsonLoose,
+  normalizeCamilleAudio,
+  normalizeTCFOral,
+  normalizeTCFWritten,
+  normalizeListeningQuestion,
+  normalizeReadingQuestion,
+  normalizeShadowing
+} from './geminiValidation';
+
+export { GeminiResponseError };
+
 export const GEMINI_CANDIDATE_MODELS = [
-  'gemini-3.5-flash',
-  'gemini-3.7-flash',
   'gemini-3.8-flash',
-  'gemini-flash-latest',
-  'gemini-3-flash-preview',
+  'gemini-3.6-flash',
   'gemini-2.5-flash'
 ];
 
+export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const USER_KEY_STORAGE = 'user_gemini_api_key';
+
 /**
- * Lê a chave da API Gemini do localStorage ou de import.meta.env.VITE_GEMINI_API_KEY
+ * Lê a chave PESSOAL do Gemini configurada pelo usuário neste navegador.
+ * Não existe mais fallback para variáveis de ambiente.
  */
 export function getGeminiApiKey() {
-  if (typeof window !== 'undefined') {
-    const userKey = localStorage.getItem('user_gemini_api_key');
-    if (userKey && userKey.trim()) return userKey.trim();
+  if (typeof window === 'undefined') return '';
+  try {
+    const userKey = localStorage.getItem(USER_KEY_STORAGE);
+    return userKey && userKey.trim() ? userKey.trim() : '';
+  } catch {
+    return '';
   }
-  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-  return (envKey && typeof envKey === 'string') ? envKey.trim() : "";
 }
 
 /**
- * Salva ou remove a chave da API Gemini no localStorage do navegador
+ * Salva ou remove a chave pessoal da API Gemini no localStorage do navegador
  */
 export function setGeminiApiKey(key) {
   if (typeof window !== 'undefined') {
@@ -54,9 +87,52 @@ export function cleanAudioMimeType(mimeType) {
 }
 
 /**
- * Executa chamada à API Gemini com fallback automático entre modelos Flash candidatos
- * (ex: se um modelo retornar 404 "no longer available" ou 503 "high demand").
- * Se houver erro de requisição (400, 403, etc), lança o erro real com detalhes completos.
+ * Utilitários de chamada.
+ */
+/** Remove qualquer ocorrência da chave de mensagens de erro antes de logar/exibir. */
+function redactKey(text, apiKey) {
+  if (!text) return '';
+  let out = String(text);
+  if (apiKey) out = out.split(apiKey).join('[chave-oculta]');
+  return out.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[chave-oculta]');
+}
+
+/**
+ * Chamada única a um modelo. Exportada para o teste de conexão em Configurações.
+ * Retorna `{ ok, status, data?, errorMessage? }` sem lançar em erros HTTP.
+ */
+export async function requestGeminiModel(model, payload, apiKey) {
+  const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    return { ok: true, status: res.status, data: await res.json() };
+  }
+
+  const errorText = await res.text().catch(() => '');
+  let errorMessage = `HTTP ${res.status}`;
+  try {
+    const jsonErr = JSON.parse(errorText);
+    if (jsonErr.error?.message) {
+      errorMessage = `HTTP ${res.status} (${jsonErr.error.status || 'ERROR'}): ${jsonErr.error.message}`;
+    }
+  } catch {
+    if (errorText) errorMessage = `HTTP ${res.status}: ${errorText.slice(0, 300)}`;
+  }
+  return { ok: false, status: res.status, errorMessage: redactKey(errorMessage, apiKey) };
+}
+
+/**
+ * Executa chamada à API Gemini com fallback entre os modelos candidatos.
+ * - 404 (modelo indisponível), 429 (cota/limite) e 5xx: tenta o próximo modelo.
+ * - 400/401/403 (requisição inválida, chave inválida/sem permissão): erro definitivo.
+ * - Falha de rede: tenta o próximo modelo.
  */
 async function callGeminiApi(payload, apiKey) {
   if (!apiKey) {
@@ -66,50 +142,41 @@ async function callGeminiApi(payload, apiKey) {
   let lastError = null;
 
   for (const model of GEMINI_CANDIDATE_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
+    let result;
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        return await res.json();
-      }
-
-      const errorText = await res.text().catch(() => '');
-      let errorMsg = `HTTP ${res.status}: ${errorText}`;
-      try {
-        const jsonErr = JSON.parse(errorText);
-        if (jsonErr.error?.message) {
-          errorMsg = `HTTP ${res.status} (${jsonErr.error.status || 'ERROR'}): ${jsonErr.error.message}`;
-        }
-      } catch (e) {
-        // mantém errorMsg bruto
-      }
-
-      // Se modelo estiver descontinuado (404) ou sobrecarregado (503), tenta o próximo candidato
-      if (res.status === 404 || res.status === 503) {
-        console.warn(`[Gemini API] Modelo ${model} indisponível (${errorMsg}). Tentando modelo alternativo...`);
-        lastError = new Error(errorMsg);
-        continue;
-      }
-
-      // Erros definitivos como 400 (Bad Request) ou 403 (Invalid Key / Quota) são lançados imediatamente
-      console.error(`[Gemini API] Erro fatal no modelo ${model}:`, errorMsg);
-      throw new Error(errorMsg);
-    } catch (err) {
-      if (err.message && (err.message.includes('HTTP 400') || err.message.includes('HTTP 403'))) {
-        throw err;
-      }
-      lastError = err;
+      result = await requestGeminiModel(model, payload, apiKey);
+    } catch (networkErr) {
+      lastError = new Error(`Falha de rede ao chamar ${model}: ${redactKey(networkErr?.message, apiKey)}`);
+      console.warn('[Gemini API]', lastError.message);
+      continue;
     }
+
+    if (result.ok) return result.data;
+
+    const fatal = [400, 401, 403].includes(result.status);
+    lastError = new Error(result.errorMessage);
+    lastError.status = result.status;
+    if (fatal) {
+      console.error(`[Gemini API] Erro definitivo no modelo ${model}:`, result.errorMessage);
+      throw lastError;
+    }
+    console.warn(`[Gemini API] Modelo ${model} indisponível (${result.errorMessage}). Tentando alternativo...`);
   }
 
-  console.error("[Gemini API] Todos os modelos candidatos falharam:", lastError);
+  console.error("[Gemini API] Todos os modelos candidatos falharam:", lastError?.message);
   throw lastError || new Error("Falha ao comunicar com a API do Google Gemini.");
+}
+
+/** Extrai, faz parse e valida a resposta JSON estruturada. */
+function parseStructured(apiResult, normalizer, ...args) {
+  const raw = extractCandidateText(apiResult);
+  if (!raw) {
+    const reason = apiResult?.candidates?.[0]?.finishReason || apiResult?.promptFeedback?.blockReason;
+    throw new GeminiResponseError(
+      `A API Gemini não retornou conteúdo${reason ? ` (motivo: ${reason})` : ''}.`
+    );
+  }
+  return normalizer(parseJsonLoose(raw), ...args);
 }
 
 /**
@@ -144,7 +211,7 @@ Formate sempre sua resposta em dois blocos claros separados por uma quebra de li
       systemInstruction: { parts: [{ text: systemInstruction }] }
     }, apiKey);
 
-    const reply = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const reply = extractCandidateText(result);
     if (reply) return reply;
     throw new Error("A API Gemini retornou uma resposta sem texto.");
   } catch (err) {
@@ -224,16 +291,7 @@ REGRAS CRÍTICAS E OBRIGATÓRIAS (NUNCA VIOLE):
       }
     }, apiKey);
 
-    const rawJson = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawJson) {
-      const parsed = JSON.parse(rawJson);
-      return {
-        transcription: parsed.userTranscription || parsed.transcription || "[Áudio gravado]",
-        replyText: parsed.replyText || "🇫🇷 Merci pour ton message audio !",
-        phoneticTip: parsed.phoneticTip || ""
-      };
-    }
-    throw new Error("A API Gemini não retornou conteúdo estruturado para o áudio.");
+    return parseStructured(result, normalizeCamilleAudio);
   } catch (err) {
     console.error("[sendAudioToCamille] Erro detalhado ao processar áudio com Gemini:", err);
     throw err;
@@ -374,15 +432,7 @@ REGRAS CRÍTICAS E OBRIGATÓRIAS (NUNCA VIOLE):
       }
     }, apiKey);
 
-    const rawJson = res?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawJson) {
-      const parsed = JSON.parse(rawJson);
-      return {
-        ...parsed,
-        transcription: parsed.userTranscription || parsed.transcription || "[Áudio gravado]"
-      };
-    }
-    throw new Error("A API Gemini não retornou avaliação estruturada.");
+    return parseStructured(res, normalizeTCFOral);
   } catch (err) {
     console.error("[evaluateTCFOralAudio] Erro detalhado:", err);
     throw err;
@@ -460,11 +510,7 @@ Avalie rigorosamente na régua NCLC e retorne estritamente o JSON:
       }
     }, apiKey);
 
-    const rawJson = res?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawJson) {
-      return JSON.parse(rawJson);
-    }
-    throw new Error("A API Gemini não retornou avaliação de texto.");
+    return parseStructured(res, normalizeTCFWritten);
   } catch (err) {
     console.error("[evaluateTCFProduction] Erro detalhado:", err);
     throw err;
@@ -743,11 +789,7 @@ Retorne estritamente um JSON com:
       }
     }, apiKey);
 
-    const rawJson = res?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawJson) {
-      return JSON.parse(rawJson);
-    }
-    throw new Error("A API Gemini não retornou a questão de Compréhension Orale.");
+    return parseStructured(res, normalizeListeningQuestion, level);
   } catch (err) {
     console.error("[generateTCFListeningQuestion] Erro detalhado:", err);
     throw err;
@@ -940,11 +982,7 @@ Retorne estritamente um JSON com:
       }
     }, apiKey);
 
-    const rawJson = res?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawJson) {
-      return JSON.parse(rawJson);
-    }
-    throw new Error("A API Gemini não retornou a questão de Compréhension Écrite.");
+    return parseStructured(res, normalizeReadingQuestion, level);
   } catch (err) {
     console.error("[generateTCFReadingQuestion] Erro detalhado:", err);
     throw err;
@@ -1042,11 +1080,7 @@ REGRAS CRÍTICAS E OBRIGATÓRIAS:
       }
     }, apiKey);
 
-    const rawJson = res?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawJson) {
-      return JSON.parse(rawJson);
-    }
-    throw new Error("A API Gemini não retornou a avaliação do Shadowing.");
+    return parseStructured(res, normalizeShadowing);
   } catch (err) {
     console.error("[evaluateShadowingAudio] Erro detalhado:", err);
     throw err;

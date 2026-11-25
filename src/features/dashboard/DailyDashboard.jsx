@@ -14,7 +14,9 @@ import {
   NotebookPen,
   Award,
   Volume2,
-  X
+  X,
+  RotateCcw,
+  Layers
 } from 'lucide-react';
 import { DAILY_DICTIONARY_SEED } from '../../data/dailyDictionarySeed';
 import { CARTOON_SPRINTS_SEED } from '../../data/cartoonSeed';
@@ -24,8 +26,14 @@ import {
   getAllStudySessions,
   saveStudySession,
   calculateCurrentStudyDay,
-  getAllDailyWords
+  getAllDailyWords,
+  getDailyProgress,
+  setDailyPillarCompleted,
+  markDailyProgressFinished,
+  getDueReviewSummary,
+  EMPTY_PILLARS
 } from '../../services/db';
+import { formatDateYYYYMMDD } from '../../services/sm2Algorithm';
 
 function toDateKey(dateInput) {
   try {
@@ -201,6 +209,96 @@ export function NotebookValidationModal({
   );
 }
 
+/**
+ * Card de cobrança das revisões do ciclo 15-30-45 (palavras do Dicionário/Pronúncia e Deck SM-2).
+ * Inclui revisões atrasadas, que antes nunca mais eram cobradas.
+ */
+export function ReviewsDueCard({ summary, onNavigateTab }) {
+  const wordsCount = summary?.words?.length || 0;
+  const cardsCount = summary?.cards?.length || 0;
+  const overdue = summary?.overdueWordsCount || 0;
+
+  if (wordsCount + cardsCount === 0) {
+    return (
+      <section className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111827] flex items-center gap-3">
+        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Revisões 15-30-45 em dia. Nenhuma pendência hoje.
+        </p>
+      </section>
+    );
+  }
+
+  const preview = (summary.words || []).slice(0, 6);
+
+  return (
+    <section className="p-6 rounded-3xl border border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <RotateCcw className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="font-display font-bold text-xl text-slate-900 dark:text-white">
+              Revisões 15-30-45 pendentes
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              {wordsCount} palavra(s) • {cardsCount} cartão(ões) do Deck
+              {overdue > 0 && (
+                <span className="ml-1 font-bold text-red-700 dark:text-red-400">
+                  • {overdue} atrasada(s)
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {wordsCount > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab && onNavigateTab('dicionario')}
+              className="px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <BookOpen className="w-3.5 h-3.5" /> Revisar palavras
+            </button>
+          )}
+          {cardsCount > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab && onNavigateTab('hoje')}
+              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" /> Revisar Deck
+            </button>
+          )}
+        </div>
+      </div>
+      {preview.length > 0 && (
+        <ul className="flex flex-wrap gap-2">
+          {preview.map((w) => (
+            <li
+              key={w.id}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                w.overdue
+                  ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'
+                  : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-200'
+              }`}
+              title={w.nextDate ? `Revisão de ${w.nextDate}` : undefined}
+            >
+              {w.word}
+            </li>
+          ))}
+          {wordsCount > preview.length && (
+            <li className="px-3 py-1 text-xs text-slate-500 dark:text-slate-400">
+              +{wordsCount - preview.length}
+            </li>
+          )}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function DailyDashboard({
   onNavigateTab,
   onCompleteDayStreak,
@@ -209,13 +307,14 @@ export function DailyDashboard({
 }) {
   const [sessions, setSessions] = useState([]);
   const [dailyWords, setDailyWords] = useState([]);
-  const [currentStudyDay, setCurrentStudyDay] = useState(1);
-  const [completedPillars, setCompletedPillars] = useState({
-    dictionary: false,
-    cartoon: false,
-    reading: false,
-    videoLesson: false
-  });
+  const [computedStudyDay, setCurrentStudyDay] = useState(1);
+  // Progresso de HOJE persistido no IndexedDB (store dailyProgress) — sobrevive ao F5.
+  const [todayProgress, setTodayProgress] = useState(null);
+  const [reviewSummary, setReviewSummary] = useState(null);
+  const completedPillars = todayProgress?.pillars || EMPTY_PILLARS;
+  const isDayFinished = Boolean(todayProgress?.finishedAt);
+  // O Jour exibido é o registrado quando o dia começou; após encerrar, continua mostrando o mesmo Jour.
+  const currentStudyDay = todayProgress?.studyDay ?? computedStudyDay;
   const [activeValidationPillar, setActiveValidationPillar] = useState(null);
   const [isFinishingDay, setIsFinishingDay] = useState(false);
   const [showVictoryCelebration, setShowVictoryCelebration] = useState(false);
@@ -224,13 +323,24 @@ export function DailyDashboard({
   const loadDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [storedSessions, storedWords] = await Promise.all([
+      const todayStr = formatDateYYYYMMDD(new Date());
+      const [storedSessions, storedWords, progress, reviews] = await Promise.all([
         getAllStudySessions(),
-        getAllDailyWords()
+        getAllDailyWords(),
+        getDailyProgress(todayStr).catch((err) => {
+          console.error('Erro ao ler progresso diário:', err);
+          return null;
+        }),
+        getDueReviewSummary(todayStr).catch((err) => {
+          console.error('Erro ao calcular revisões pendentes:', err);
+          return null;
+        })
       ]);
 
       setSessions(storedSessions || []);
       setDailyWords(storedWords || []);
+      setTodayProgress(progress);
+      setReviewSummary(reviews);
 
       const computedDay = calculateCurrentStudyDay(storedSessions || []);
       setCurrentStudyDay(computedDay);
@@ -366,27 +476,42 @@ export function DailyDashboard({
     setActiveValidationPillar(pillar);
   };
 
-  const handleConfirmNotebookValidation = (pillarId) => {
-    setCompletedPillars((prev) => ({
-      ...prev,
-      [pillarId]: true
-    }));
+  const handleConfirmNotebookValidation = async (pillarId) => {
     setActiveValidationPillar(null);
-    if (onShowToast) {
-      onShowToast('📓 Tópico validado no caderno de 10 matérias!');
+    try {
+      const saved = await setDailyPillarCompleted(pillarId, {
+        dateStr: formatDateYYYYMMDD(new Date()),
+        studyDay: currentStudyDay
+      });
+      setTodayProgress(saved);
+      if (onShowToast) {
+        onShowToast('📓 Tópico validado no caderno de 10 matérias!');
+      }
+    } catch (err) {
+      console.error('Erro ao salvar pilar no IndexedDB:', err);
+      if (onShowToast) {
+        onShowToast('Não foi possível salvar o pilar. Tente novamente.', 'error');
+      }
     }
   };
 
   const handleFinishDaySession = async () => {
-    if (!allFourPillarsCompleted || isFinishingDay) return;
+    if (!allFourPillarsCompleted || isFinishingDay || isDayFinished) return;
 
     try {
       setIsFinishingDay(true);
+      const finishedDay = currentStudyDay;
       await saveStudySession({
         notebook_photo_data_url: null,
         lesson_id: videoLessonOfTheDay?.id || `day_${currentStudyDay}`,
         lesson_title: `Jour ${currentStudyDay} Completo: ${videoLessonOfTheDay?.title || '4 Pilares'}`
       });
+
+      const finishedRecord = await markDailyProgressFinished({
+        dateStr: formatDateYYYYMMDD(new Date()),
+        studyDay: finishedDay
+      });
+      setTodayProgress(finishedRecord);
 
       const updatedSessions = await getAllStudySessions();
       setSessions(updatedSessions);
@@ -523,7 +648,7 @@ export function DailyDashboard({
                     Sessão Registrada no IndexedDB & Ofensiva Incrementada!
                   </h2>
                   <p className="text-xs sm:text-sm text-emerald-50">
-                    Os 4 pilares e suas anotações manuscritas no caderno de 10 matérias foram consolidados. Você avançou para o <strong>Jour {currentStudyDay}</strong>!
+                    Os 4 pilares e suas anotações manuscritas no caderno de 10 matérias foram consolidados. O <strong>Jour {computedStudyDay}</strong> começa amanhã!
                   </p>
                 </div>
               </div>
@@ -539,6 +664,11 @@ export function DailyDashboard({
           </motion.section>
         )}
       </AnimatePresence>
+
+      {/* COBRANÇA DAS REVISÕES 15-30-45 */}
+      {reviewSummary && (
+        <ReviewsDueCard summary={reviewSummary} onNavigateTab={onNavigateTab} />
+      )}
 
       {/* GRID DOS 4 PILARES DIÁRIOS */}
       <section className="space-y-4">
@@ -668,7 +798,13 @@ export function DailyDashboard({
 
       {/* CONCLUSÃO DO DIA: LIBERADO APENAS QUANDO OS 4 PILARES ESTIVEREM VERDES/CONCLUÍDOS */}
       <section className="pt-2">
-        {allFourPillarsCompleted ? (
+        {isDayFinished ? (
+          <div className="p-6 rounded-3xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500/40 text-center space-y-1.5">
+            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+              ✓ Jour {currentStudyDay} encerrado hoje. Volte amanhã para o Jour {computedStudyDay}.
+            </p>
+          </div>
+        ) : allFourPillarsCompleted ? (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

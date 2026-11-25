@@ -15,6 +15,7 @@ import VideoLessonTab from './features/lessons/VideoLessonTab';
 import LessonsTab from './features/lessons/LessonsTab';
 import TCFSimulatorTab from './features/tcf-simulator/TCFSimulatorTab';
 import Toast from './components/common/Toast';
+import DatabaseRecoveryBanner from './components/common/DatabaseRecoveryBanner';
 import { storageService, DEFAULT_STATE } from './services/storageService';
 import { 
   initDatabase, 
@@ -24,40 +25,62 @@ import {
   addErrorToDeck, 
   getPendingReviewsCount,
   addTCFHistory,
-  getTCFHistory
+  getTCFHistory,
+  dbStatus,
+  subscribeDbStatus,
+  retryDatabaseOpen
 } from './services/db';
 import { useFrenchAudio } from './hooks/useFrenchAudio';
 
 export function App() {
   const [state, setState] = useState(() => storageService.loadState());
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ui_theme');
+      return saved === 'light' || saved === 'dark' ? saved : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+  const [databaseStatus, setDatabaseStatus] = useState(() => ({ ...dbStatus }));
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState({ isVisible: false, message: '', type: 'success' });
 
   const { testVoiceAudio } = useFrenchAudio();
 
-  // Inicializa banco IndexedDB Dexie e sincroniza flashcards e pendências
-  useEffect(() => {
-    async function setupIndexedDb() {
-      try {
-        await initDatabase();
-        const allCards = await getAllFlashcards();
-        const dueCount = await getPendingReviewsCount();
-        const history = await getTCFHistory();
+  useEffect(() => subscribeDbStatus(setDatabaseStatus), []);
 
-        setState(prev => ({
-          ...prev,
-          flashcards: allCards.length > 0 ? allCards : prev.flashcards,
-          pendingReviews: dueCount,
-          tcfHistory: history.length > 0 ? history : prev.tcfHistory
-        }));
-      } catch (err) {
-        console.error("Falha ao sincronizar com IndexedDB:", err);
-      }
+  // Inicializa banco IndexedDB Dexie e sincroniza flashcards e pendências
+  const setupIndexedDb = useCallback(async () => {
+    try {
+      await initDatabase();
+      const allCards = await getAllFlashcards();
+      const dueCount = await getPendingReviewsCount();
+      const history = await getTCFHistory();
+
+      setState(prev => ({
+        ...prev,
+        flashcards: allCards.length > 0 ? allCards : prev.flashcards,
+        pendingReviews: dueCount,
+        tcfHistory: history.length > 0 ? history : prev.tcfHistory
+      }));
+    } catch (err) {
+      console.error("Falha ao sincronizar com IndexedDB:", err);
     }
-    setupIndexedDb();
   }, []);
+
+  useEffect(() => {
+    setupIndexedDb();
+  }, [setupIndexedDb]);
+
+  const handleRetryDatabase = useCallback(
+    async ({ skipBackup = false } = {}) => {
+      await retryDatabaseOpen({ skipBackup });
+      await setupIndexedDb();
+    },
+    [setupIndexedDb]
+  );
 
   // Salva metadados gerais no localStorage
   useEffect(() => {
@@ -70,6 +93,11 @@ export function App() {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('ui_theme', theme);
+    } catch {
+      // preferência visual: falha silenciosa é aceitável
     }
   }, [theme]);
 
@@ -284,6 +312,8 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-14 md:pt-6 pb-24 md:pb-12 overflow-x-hidden">
+        <DatabaseRecoveryBanner status={databaseStatus} onRetry={handleRetryDatabase} />
+
         <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && (
             <div key="dashboard" id="tab-dashboard">

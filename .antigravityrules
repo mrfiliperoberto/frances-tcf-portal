@@ -6,6 +6,6 @@
 - Design System: Dark-mode editorial refinado (fundo slate-950/zinc-950), tipografia limpa (Inter para UI, Playfair Display para títulos, Fira Code para contadores e métricas).
 
 ## Diretrizes para o Agente
-1. Nunca exponha chaves de API hardcoded no código. Use variáveis de ambiente (`.env` com `VITE_GEMINI_API_KEY`).
+1. Nunca exponha chaves de API no código nem no bundle. Variáveis `VITE_*` SÃO embutidas no JavaScript público de `dist/` — nunca coloque credenciais nelas. A chave pessoal do Gemini é colada pelo usuário em Configurações (⚙️) e fica no localStorage do navegador (não é armazenamento secreto). Credenciais privadas de servidor só podem existir num backend/proxy, sem prefixo `VITE_`.
 2. Sempre que criar ou alterar um componente visual, utilize o Browser Agent integrado para abrir `http://localhost:5173`, clicar na aba correspondente e verificar se há erros no Console antes de concluir a missão.
 3. Mantenha a síntese de voz (`fr-CA` e `fr-FR`) encapsulada em um custom hook `useSpeech.js`.
