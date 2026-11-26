@@ -22,7 +22,7 @@ import {
   markDailyWordAsStudied,
   completeDailyWordReview
 } from '../../services/db';
-import { useFrenchAudio } from '../../hooks/useFrenchAudio';
+import { playFrench, stopFrench, extractGoogleTtsText } from '../../services/ttsService';
 
 const CEFR_BADGE_STYLES = {
   A1: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
@@ -58,7 +58,6 @@ export function DailyDictionaryTab({ onAddCard, onShowToast }) {
   const [playingType, setPlayingType] = useState(null);
 
   const htmlAudioRef = useRef(null);
-  const { speakText } = useFrenchAudio();
 
   // useEffect blindado com try...catch...finally { setLoading(false) }
   useEffect(() => {
@@ -175,42 +174,51 @@ export function DailyDictionaryTab({ onAddCard, onShowToast }) {
   };
 
   /**
-   * Reproduz humanAudioUrl (Google Neural TTS fr-CA) com fallback Web Speech API
+   * Reproduz a palavra. URLs do Google TTS (as das seeds) e palavras sem URL passam pelo
+   * ttsService (proxy /__tts com fallback speechSynthesis): pedir translate.google.com direto
+   * da página é bloqueado pelo Chrome. Áudio hospedado em outro lugar toca direto e, se falhar,
+   * também cai no ttsService.
    */
-  const playWordAudio = useCallback(
-    async (audioUrl, textToSpeak, type = 'word') => {
-      if (htmlAudioRef.current) {
-        try {
-          htmlAudioRef.current.pause();
-          htmlAudioRef.current.currentTime = 0;
-        } catch {}
-      }
-
-      setPlayingType(type);
-
-      const triggerFallback = () => {
-        speakText(textToSpeak, 0.9);
-        setTimeout(() => setPlayingType(null), 1200);
-      };
-
-      const targetUrl =
-        audioUrl ||
-        `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(
-          textToSpeak
-        )}&tl=fr-CA&client=tw-ob`;
-
+  const playWordAudio = useCallback(async (audioUrl, textToSpeak, type = 'word') => {
+    if (htmlAudioRef.current) {
       try {
-        const audio = new Audio(targetUrl);
-        htmlAudioRef.current = audio;
-        audio.onended = () => setPlayingType(null);
-        audio.onerror = () => triggerFallback();
-        await audio.play();
+        htmlAudioRef.current.pause();
+        htmlAudioRef.current.currentTime = 0;
+      } catch {}
+      htmlAudioRef.current = null;
+    }
+    stopFrench();
+    setPlayingType(type);
+
+    const done = () => setPlayingType((curr) => (curr === type ? null : curr));
+    const playViaTtsService = async (text) => {
+      try {
+        await playFrench(text, { rate: 0.9 });
       } catch {
-        triggerFallback();
+        // proxy e speechSynthesis falharam: não há mais o que tentar
+      } finally {
+        done();
       }
-    },
-    [speakText]
-  );
+    };
+
+    const googleText = audioUrl ? extractGoogleTtsText(audioUrl) : '';
+    if (!audioUrl || googleText !== null) {
+      await playViaTtsService(googleText || textToSpeak);
+      return;
+    }
+
+    try {
+      const audio = new Audio(audioUrl);
+      htmlAudioRef.current = audio;
+      audio.onended = done;
+      audio.onerror = () => playViaTtsService(textToSpeak);
+      await audio.play();
+    } catch {
+      await playViaTtsService(textToSpeak);
+    }
+  }, []);
+
+  useEffect(() => () => stopFrench(), []);
 
   /**
    * Checkbox da Palavra do Dia:

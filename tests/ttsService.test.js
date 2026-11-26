@@ -67,6 +67,16 @@ afterEach(() => {
 });
 
 describe('text helpers', () => {
+  it('extracts the text of Google Translate TTS URLs only', () => {
+    expect(
+      tts.extractGoogleTtsText('https://translate.google.com/translate_tts?ie=UTF-8&q=bonjour&tl=fr-CA&client=tw-ob')
+    ).toBe('bonjour');
+    expect(tts.extractGoogleTtsText('https://translate.google.com/translate_tts?tl=fr-CA')).toBe('');
+    expect(tts.extractGoogleTtsText('https://upload.wikimedia.org/x.ogg')).toBeNull();
+    expect(tts.extractGoogleTtsText('/audio/x.mp3')).toBeNull();
+    expect(tts.extractGoogleTtsText(undefined)).toBeNull();
+  });
+
   it('cleans HTML and [phonetic] brackets', () => {
     expect(tts.cleanSpeechText('<b>Bonjour</b> [bɔ̃.ʒuʁ]  le monde')).toBe('Bonjour le monde');
   });
