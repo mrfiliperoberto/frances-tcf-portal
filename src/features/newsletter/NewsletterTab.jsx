@@ -7,14 +7,16 @@ import {
   Plus,
   Sparkles,
   Clock,
-  BookOpen,
-  Languages
+  Languages,
+  PenLine
 } from 'lucide-react';
 import { NEWSLETTER_SEED } from '../../data/newsletterSeed';
 import { useFrenchAudio } from '../../hooks/useFrenchAudio';
+import { ArticlePicker, filterArticlesByLevel } from './ArticlePicker';
 
 export function NewsletterTab({ onAddCard, onShowToast }) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedId, setSelectedId] = useState(NEWSLETTER_SEED[0]?.id);
+  const [levelFilter, setLevelFilter] = useState('Todos');
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState(null);
   const [pinnedSegmentIndex, setPinnedSegmentIndex] = useState(0);
   const [autoSpeakOnHover, setAutoSpeakOnHover] = useState(false);
@@ -22,7 +24,23 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
 
   const { speakText, stopSpeaking } = useFrenchAudio();
 
-  const currentArticle = NEWSLETTER_SEED[selectedIndex] || NEWSLETTER_SEED[0];
+  const currentArticle =
+    NEWSLETTER_SEED.find((article) => article.id === selectedId) || NEWSLETTER_SEED[0];
+
+  const selectArticle = (articleId) => {
+    stopSpeaking();
+    setSelectedId(articleId);
+    setHoveredSegmentIndex(null);
+    setPinnedSegmentIndex(0);
+  };
+
+  const handleLevelChange = (level) => {
+    setLevelFilter(level);
+    const visible = filterArticlesByLevel(NEWSLETTER_SEED, level);
+    if (visible.length > 0 && !visible.some((article) => article.id === currentArticle.id)) {
+      selectArticle(visible[0].id);
+    }
+  };
   const activeSegmentIndex =
     hoveredSegmentIndex !== null ? hoveredSegmentIndex : pinnedSegmentIndex;
   const activeSegment =
@@ -105,37 +123,17 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
           </p>
         </div>
 
-        {/* Barra de Controles e Seletor de Edições */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Abas de Notícias */}
-          <div className="flex flex-wrap items-center gap-2">
-            {NEWSLETTER_SEED.map((article, idx) => {
-              const isSelected = idx === selectedIndex;
-              return (
-                <button
-                  key={article.id}
-                  type="button"
-                  onClick={() => {
-                    stopSpeaking();
-                    setSelectedIndex(idx);
-                    setHoveredSegmentIndex(null);
-                    setPinnedSegmentIndex(0);
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                    isSelected
-                      ? 'bg-red-700 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>
-                    Matéria {idx + 1}: {article.category}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Seletor de Edições: filtro por nível + cards */}
+        <ArticlePicker
+          articles={NEWSLETTER_SEED}
+          selectedId={currentArticle.id}
+          levelFilter={levelFilter}
+          onLevelChange={handleLevelChange}
+          onSelect={selectArticle}
+        />
 
+        {/* Barra de Controles */}
+        <div className="flex flex-wrap items-center justify-end gap-4">
           {/* Controles de Áudio no Hover e Tradução */}
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -185,13 +183,31 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
       <article className="p-6 sm:p-10 lg:p-12 rounded-3xl bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-8">
         {/* Metadados e Manchete em Playfair Display */}
         <div className="space-y-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-          <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-red-700 dark:text-red-400">
+          {currentArticle.image && (
+            <img
+              key={currentArticle.id}
+              src={currentArticle.image}
+              alt={currentArticle.imageAlt || ''}
+              decoding="async"
+              className="w-full aspect-[3/2] sm:aspect-[2/1] object-cover rounded-2xl bg-slate-100 dark:bg-slate-800"
+            />
+          )}
+          <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-red-700 dark:text-red-400">
             <span>{currentArticle.category}</span>
             <span>•</span>
             <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium normal-case">
               <Clock className="w-3.5 h-3.5" />
               Leitura de {currentArticle.readingTime}
             </span>
+            {currentArticle.isFictional && (
+              <span
+                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-semibold normal-case tracking-normal"
+                title="Texto criado para estudo; pessoas e fatos são fictícios"
+              >
+                <PenLine className="w-3 h-3" />
+                Ficção editorial
+              </span>
+            )}
           </div>
 
           <h2
