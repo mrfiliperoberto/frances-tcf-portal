@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import https from 'node:https';
+import ttsProxyGuard from './tts-proxy-guard.cjs';
+
+const { parseAllowedTtsUrl } = ttsProxyGuard;
 
 function googleTtsProxyPlugin() {
   return {
@@ -10,15 +13,15 @@ function googleTtsProxyPlugin() {
       server.middlewares.use('/__tts', (req, res) => {
         try {
           const parsed = new URL(req.url || '', 'http://localhost:5173');
-          const targetUrl = parsed.searchParams.get('url');
-          if (!targetUrl || !targetUrl.startsWith('https://')) {
+          const allowedUrl = parseAllowedTtsUrl(parsed.searchParams.get('url'));
+          if (!allowedUrl) {
             res.statusCode = 400;
             res.end('Invalid TTS URL');
             return;
           }
           https
             .get(
-              targetUrl,
+              allowedUrl.toString(),
               {
                 headers: {
                   'User-Agent':

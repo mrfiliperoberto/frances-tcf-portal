@@ -2,6 +2,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { parseAllowedTtsUrl } = require('./tts-proxy-guard.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 const DIST_DIR = path.join(__dirname, 'dist');
@@ -38,8 +39,8 @@ const server = http.createServer((req, res) => {
 
     // Proxy local para evitar bloqueio CORS/ORB do Chrome em URLs translate.google.com/translate_tts
     if (pathname === '/__tts') {
-      const targetUrl = parsedUrl.searchParams.get('url');
-      if (!targetUrl || !targetUrl.startsWith('https://')) {
+      const allowedUrl = parseAllowedTtsUrl(parsedUrl.searchParams.get('url'));
+      if (!allowedUrl) {
         res.writeHead(400);
         res.end('Invalid TTS URL');
         return;
@@ -47,7 +48,7 @@ const server = http.createServer((req, res) => {
 
       https
         .get(
-          targetUrl,
+          allowedUrl.toString(),
           {
             headers: {
               'User-Agent':

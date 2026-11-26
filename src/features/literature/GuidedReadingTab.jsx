@@ -13,31 +13,24 @@ import {
   completeGuidedReadingChapter
 } from '../../services/db';
 import { LE_PETIT_PRINCE_SENTENCES, LE_PETIT_PRINCE_BOOK } from '../../data/lePetitPrince';
-
-/**
- * Controle global de áudio para evitar sobreposição e respeitar a política de Autoplay do navegador.
- */
-let currentAudio = null;
-
-const playTextAudio = (text) => {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-  }
-  const url =
-    'https://translate.google.com/translate_tts?ie=UTF-8&q=' +
-    encodeURIComponent(text) +
-    '&tl=fr-CA&client=tw-ob';
-  currentAudio = new Audio(url);
-  currentAudio
-    .play()
-    .catch((err) => console.error('Autoplay bloqueado pelo navegador:', err));
-};
+import { playFrench, stopFrench } from '../../services/ttsService';
 
 export function GuidedReadingTab({ onAddCard, onShowToast }) {
   const [sentences] = useState(LE_PETIT_PRINCE_SENTENCES);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [isChapterCompleted, setIsChapterCompleted] = useState(false);
+
+  // Proxy /__tts first, speechSynthesis fallback; the service logs the real error.
+  const playTextAudio = useCallback(
+    (text) => {
+      playFrench(text).catch(() => {
+        if (onShowToast) {
+          onShowToast('Não foi possível reproduzir o áudio desta frase.', 'error');
+        }
+      });
+    },
+    [onShowToast]
+  );
 
   // Sincroniza status de conclusão do capítulo no IndexedDB
   const loadCompletionState = useCallback(async () => {
@@ -54,10 +47,7 @@ export function GuidedReadingTab({ onAddCard, onShowToast }) {
   useEffect(() => {
     loadCompletionState();
     return () => {
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-      }
+      stopFrench();
     };
   }, [loadCompletionState]);
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { speakWithSynthesis, cancelSynthesis, hasSpeechSynthesis } from '../services/ttsService';
 
 /**
  * Custom hook encapsulando Web Speech API (TTS - Text To Speech & STT - Speech To Text)
@@ -9,8 +10,6 @@ export function useFrenchAudio() {
   const [isListening, setIsListening] = useState(false);
   const [voices, setVoices] = useState([]);
   const recognitionRef = useRef(null);
-  const utteranceRef = useRef(null);
-  const speakTimeoutRef = useRef(null);
 
   // Carrega e atualiza vozes disponíveis no navegador
   useEffect(() => {
@@ -29,12 +28,7 @@ export function useFrenchAudio() {
     }
 
     return () => {
-      if (speakTimeoutRef.current) {
-        clearTimeout(speakTimeoutRef.current);
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      cancelSynthesis();
     };
   }, []);
 
@@ -42,80 +36,23 @@ export function useFrenchAudio() {
    * Síntese de Voz (TTS) em Francês
    */
   const speakText = useCallback((text, rate = 0.94) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (!hasSpeechSynthesis()) {
       console.warn("SpeechSynthesis não suportado neste navegador.");
       return false;
     }
-
-    if (!text || !text.trim()) return false;
-
-    if (speakTimeoutRef.current) {
-      clearTimeout(speakTimeoutRef.current);
-      speakTimeoutRef.current = null;
-    }
-
-    const synth = window.speechSynthesis;
-    const wasBusy = synth.speaking || synth.pending;
-    if (wasBusy) {
-      synth.cancel();
-    }
-    if (synth.paused) {
-      synth.resume();
-    }
-
-    const cleanText = text
-      .replace(/<[^>]*>/g, '') // remove HTML se houver
-      .replace(/\[.*?\]/g, '') // remove transcrições fonéticas
-      .trim();
-
-    const startUtterance = () => {
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utteranceRef.current = utterance; // Previne coleta de lixo prematura no Chrome/Edge
-
-      // Procura voz fr-CA e depois qualquer voz francesa (fr-FR, fr, etc.)
-      const currentVoices = voices.length > 0 ? voices : synth.getVoices();
-      const frCA = currentVoices.find(
-        (v) => v.lang && (v.lang.toLowerCase().includes('fr-ca') || v.lang.toLowerCase().includes('fr_ca'))
-      );
-      const frOther = currentVoices.find((v) => v.lang && v.lang.toLowerCase().startsWith('fr'));
-      const selectedVoice = frCA || frOther;
-
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-        utterance.lang = selectedVoice.lang; // Deve coincidir com a voz selecionada no Windows SAPI
-      } else {
-        utterance.lang = 'fr-FR';
-      }
-
-      utterance.rate = rate;
-      utterance.volume = 1.0;
-
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        utteranceRef.current = null;
-      };
-      utterance.onerror = () => {
-        setIsSpeaking(false);
-        utteranceRef.current = null;
-      };
-
-      synth.speak(utterance);
-    };
-
-    // No Windows Chrome/Edge, chamar speak() no mesmo tick que cancel() pode cancelar a nova fala
-    if (wasBusy) {
-      speakTimeoutRef.current = setTimeout(startUtterance, 40);
-    } else {
-      startUtterance();
-    }
-
-    return true;
+    // Seleção de voz fr-CA → fr-* → fr-FR e o atraso pós-cancel ficam no ttsService (compartilhado).
+    return speakWithSynthesis(text, {
+      rate,
+      voices,
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false)
+    });
   }, [voices]);
 
   const stopSpeaking = useCallback(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (hasSpeechSynthesis()) {
+      cancelSynthesis();
       setIsSpeaking(false);
     }
   }, []);
