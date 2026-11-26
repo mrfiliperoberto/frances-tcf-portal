@@ -71,7 +71,7 @@ describe('Migração v8 → v10 (passando pela v9)', () => {
     openedDb = mod.db;
     await mod.initDatabase();
 
-    expect(mod.db.verno).toBe(10);
+    expect(mod.db.verno).toBe(11);
     expect(mod.dbStatus.state).toBe('ready');
     const after = await readAllRaw(mod.db);
 
@@ -296,7 +296,7 @@ describe('Falhas de abertura nunca apagam dados', () => {
 
     await mod.retryDatabaseOpen();
     expect(mod.dbStatus.state).toBe('ready');
-    expect(mod.db.verno).toBe(10);
+    expect(mod.db.verno).toBe(11);
     vi.doUnmock('../src/services/dbBackup.js');
   });
 });
@@ -334,7 +334,7 @@ describe('Migração v9 → v10 (voiceRecordings)', () => {
     await mod.initDatabase();
 
     expect(mod.dbStatus.state).toBe('ready');
-    expect(mod.db.verno).toBe(10);
+    expect(mod.db.verno).toBe(11);
     const after = await readAllRaw(mod.db);
     for (const store of Object.keys(V9_SCHEMA)) {
       for (const record of before[store]) {
@@ -354,5 +354,37 @@ describe('Migração v9 → v10 (voiceRecordings)', () => {
     expect(snaps).toHaveLength(1);
     expect(snaps[0].fromVersion).toBe(9);
     expect(snaps[0].counts.dailyWords).toBe(1);
+  });
+});
+
+describe('Migração v10 → v11 (Alerta de Vagas)', () => {
+  it('preserva dados e gravações, cria snapshot e adiciona jobProfile/jobPostings vazias', async () => {
+    const legacy = new Dexie(DB_NAME);
+    legacy.version(10).stores({ ...V9_SCHEMA, voiceRecordings: '++id, wordId, recordedAt, source' });
+    await legacy.open();
+    await legacy.dailyWords.put({ id: 'dict_200', word: 'abandonner', reviewCount: 5, reviewDates: [], isMastered: false });
+    await legacy.voiceRecordings.add({ wordId: 'dict_200', recordedAt: '2026-11-25T23:14:05.000Z', audio: new Uint8Array([1, 2, 3]).buffer });
+    legacy.close();
+
+    const mod = await import('../src/services/db.js');
+    openedDb = mod.db;
+    await mod.initDatabase();
+
+    expect(mod.dbStatus.state).toBe('ready');
+    expect(mod.db.verno).toBe(11);
+    expect((await mod.db.dailyWords.get('dict_200')).reviewCount).toBe(5);
+    const [recording] = await mod.db.voiceRecordings.toArray();
+    expect(new Uint8Array(recording.audio)).toEqual(new Uint8Array([1, 2, 3]));
+    expect(await mod.db.jobProfile.count()).toBe(0);
+    expect(await mod.db.jobPostings.count()).toBe(0);
+    expect(Object.keys(mod.db.jobPostings.schema.idxByName)).toEqual(
+      expect.arrayContaining(['source', 'postedAt', 'firstSeenAt', 'status'])
+    );
+
+    const backup = await import('../src/services/dbBackup.js');
+    const snaps = await backup.listSnapshots();
+    expect(snaps).toHaveLength(1);
+    expect(snaps[0].fromVersion).toBe(10);
+    expect(snaps[0].counts.voiceRecordings).toBe(1);
   });
 });
