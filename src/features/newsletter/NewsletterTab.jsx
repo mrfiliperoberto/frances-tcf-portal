@@ -7,7 +7,8 @@ import {
   Plus,
   Sparkles,
   Clock,
-  Languages
+  Languages,
+  PenLine
 } from 'lucide-react';
 import { NEWSLETTER_SEED } from '../../data/newsletterSeed';
 import { useFrenchAudio } from '../../hooks/useFrenchAudio';
@@ -182,13 +183,22 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
       <article className="p-6 sm:p-10 lg:p-12 rounded-3xl bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-8">
         {/* Metadados e Manchete em Playfair Display */}
         <div className="space-y-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-          <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-red-700 dark:text-red-400">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-red-700 dark:text-red-400">
             <span>{currentArticle.category}</span>
             <span>•</span>
             <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium normal-case">
               <Clock className="w-3.5 h-3.5" />
               Leitura de {currentArticle.readingTime}
             </span>
+            {currentArticle.isFictional && (
+              <span
+                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-semibold normal-case tracking-normal"
+                title="Texto criado para estudo; pessoas e fatos são fictícios"
+              >
+                <PenLine className="w-3 h-3" />
+                Ficção editorial
+              </span>
+            )}
           </div>
 
           <h2

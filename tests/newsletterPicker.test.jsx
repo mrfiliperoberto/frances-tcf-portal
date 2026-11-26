@@ -60,4 +60,10 @@ describe('ArticlePicker (SSR)', () => {
     expect(html).toContain('Filtrar por nível');
     expect(html).toContain(NEWSLETTER_SEED[0].headline_fr.slice(0, 20));
   });
+
+  it('NewsletterTab shows the editorial fiction badge for fictional articles', async () => {
+    const { NewsletterTab } = await import('../src/features/newsletter/NewsletterTab.jsx');
+    expect(NEWSLETTER_SEED[0].isFictional).toBe(true);
+    expect(renderToString(<NewsletterTab />)).toContain('Ficção editorial');
+  });
 });
