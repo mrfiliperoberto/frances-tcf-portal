@@ -26,6 +26,7 @@ import {
   requestPersistentStorage,
   formatRecordingDateTime
 } from '../../services/voiceRecordings';
+import { RecordingHistory } from './RecordingHistory';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const PRONUNCIATION_LEVELS = ['Todos', 'A1', 'A2', 'B1', 'B2'];
@@ -193,6 +194,17 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   // Palavra e instante de início da gravação em andamento; lido quando o Blob final fica pronto
   const recordingTargetRef = useRef(null);
   const lastSavedBlobRef = useRef(null);
+  // Incrementado quando uma gravação é salva ou avaliada, para o histórico aberto recarregar
+  const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
+
+  const handleRecordingDeleted = useCallback((wordId) => {
+    setRecordCounts((prev) => {
+      const next = new Map(prev);
+      const key = String(wordId);
+      next.set(key, Math.max(0, (next.get(key) || 0) - 1));
+      return next;
+    });
+  }, []);
 
   const { speakText } = useFrenchAudio();
   const {
@@ -265,6 +277,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
           return next;
         });
         setSavedRecordingIdByCard((prev) => ({ ...prev, [target.wordId]: saved.id }));
+        setHistoryRefreshToken((n) => n + 1);
         requestPersistentStorage();
         if (onShowToast) {
           onShowToast(
@@ -511,7 +524,9 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
         setRecordingEvaluation(savedId, {
           score: result.pronunciationScore,
           feedback: result.surgicalFeedback
-        }).catch((err) => console.error('Erro ao salvar avaliação da gravação:', err));
+        })
+          .then(() => setHistoryRefreshToken((n) => n + 1))
+          .catch((err) => console.error('Erro ao salvar avaliação da gravação:', err));
       }
 
       if (onShowToast) {
@@ -899,6 +914,16 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
                       )}
                     </div>
                   )}
+
+                  {/* Histórico de gravações salvas desta palavra */}
+                  <RecordingHistory
+                    wordId={item.id}
+                    word={item.word}
+                    recordCount={recordCounts.get(String(item.id)) || 0}
+                    refreshToken={historyRefreshToken}
+                    onDeleted={handleRecordingDeleted}
+                    onShowToast={onShowToast}
+                  />
                 </div>
               </div>
             );
