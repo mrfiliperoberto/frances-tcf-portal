@@ -21,7 +21,8 @@ import {
   X,
   AudioWaveform,
   GraduationCap,
-  MoreHorizontal
+  MoreHorizontal,
+  BellRing
 } from 'lucide-react';
 import SettingsModal from '../common/SettingsModal';
 import { getGeminiApiKey } from '../../services/geminiService';
@@ -62,7 +63,8 @@ export const NAVIGATION_GROUPS = [
   {
     category: 'BÔNUS',
     items: [
-      { id: 'newsletter', label: 'Newsletter', icon: Newspaper }
+      { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
+      { id: 'vagas', label: 'Alerta de Vagas', icon: BellRing }
     ]
   }
 ];

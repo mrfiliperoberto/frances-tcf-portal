@@ -38,6 +38,13 @@ A aplicação funciona como um **Progressive Web App (PWA)** offline-first com p
 - Micro-aulas estruturadas com áudio nativo e vocabulário autêntico do Québec (*courriel*, *magasiner*, *char*, *chum/blonde*, *avoir bien hâte*).
 - Calculadora interativa de previsão realista para atingir **NCLC 5** e **NCLC 7+** com base na dedicação semanal.
 
+### 6. 🍁 Alerta de Vagas (Bônus)
+- Feed diário no estilo canal de Telegram, com vagas de **estágio e entry level** em atendimento/Customer Success, desenvolvimento e marketing.
+- Fontes: páginas de carreira de **106 empresas com sede no Canadá** (Greenhouse, Lever, Ashby, SmartRecruiters, Workable, BambooHR, Recruitee, Breezy), **Job Bank Canada**, **Google Jobs** (opcional), Himalayas, Jobicy e Remotive — sempre com link para o anúncio original.
+- Etiquetas de elegibilidade: 🟢 remoto aberto ao Brasil, 🟡 Mobilidade Francófona / patrocínio de visto, 🔴 exige autorização; e 🧳 **Relocation** quando o anúncio oferece ajuda com mudança.
+- O currículo colado no Perfil fica **só no aparelho**; o servidor (`/api/jobs`) não recebe nada pessoal.
+- **Google Jobs (opcional):** crie uma chave gratuita no [SerpApi](https://serpapi.com) (250 buscas/mês) e defina `SERPAPI_KEY` em `.env.local` (dev e app desktop) e em *Vercel → Project Settings → Environment Variables* (site). Sem prefixo `VITE_`: a chave nunca vai para o navegador.
+
 ---
 
 ## 🛠️ Stack Tecnológica
