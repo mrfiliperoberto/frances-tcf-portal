@@ -121,7 +121,13 @@ export function previewInterval(card = {}, quality = 4) {
 export function isCardDue(card, todayStr = formatDateYYYYMMDD(new Date())) {
   if (!card || card.isMastered) return false;
   if (Array.isArray(card.reviewDates) && card.reviewDates.length > 0) {
-    return card.reviewDates.includes(todayStr);
+    // Nos flashcards, `reviewDates` permanece fixo durante o ciclo e `repetition` indica
+    // quantas etapas já foram concluídas (0 → dia 15, 1 → dia 30, 2 → dia 45).
+    // A etapa pendente está vencida se a data dela for hoje OU já passou (revisão atrasada).
+    const rep = Math.max(0, Number(card.repetition) || 0);
+    const pendingDate = card.reviewDates[Math.min(rep, card.reviewDates.length - 1)];
+    if (rep >= card.reviewDates.length) return false;
+    return typeof pendingDate === 'string' && pendingDate <= todayStr;
   }
   if (!card.nextReviewDate) return true;
   return new Date(card.nextReviewDate) <= new Date();

@@ -62,10 +62,17 @@ A aplicação funciona como um **Progressive Web App (PWA)** offline-first com p
    ```
 
 2. **Configure a chave da API Gemini (Opcional — possui modo simulado inteligente):**
-   Copie o arquivo `.env.example` para `.env` e adicione sua chave do Google AI Studio (ou configure diretamente pela interface clicando no ícone ⚙️ na barra de navegação):
-   ```env
-   VITE_GEMINI_API_KEY=sua_chave_aqui
-   ```
+   Abra o app, clique em ⚙️ **IA** na barra lateral e cole a **sua chave pessoal** do Google AI Studio.
+
+   > ⚠️ **Não use `VITE_GEMINI_API_KEY` no `.env`.** Variáveis `VITE_*` são embutidas no JavaScript
+   > público do `dist/`. A chave pessoal fica no `localStorage` deste navegador, que **não** é um cofre
+   > secreto (extensões ou scripts na mesma origem conseguem lê-la). Use uma chave só sua, com cota
+   > limitada e, se possível, restrita por HTTP referrer no Google Cloud Console.
+
+   **Versão multiusuário (futuro):** o navegador não deve falar direto com o Gemini. A arquitetura
+   recomendada é uma função de servidor (ex.: Vercel Function `/api/gemini`) que guarda a credencial
+   em variável **sem** prefixo `VITE_`, exige autenticação do usuário, aplica limite de requisições
+   por usuário, valida o payload (tamanho do áudio, modelo permitido) e só repassa a chamada.
 
 3. **Inicie o servidor de desenvolvimento:**
    ```bash

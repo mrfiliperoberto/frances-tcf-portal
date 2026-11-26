@@ -12,6 +12,7 @@ import {
   formatDateYYYYMMDD,
   generateReviewDates15_30_45
 } from './sm2Algorithm';
+import { createSnapshot, getRawDatabaseVersion, nativeToDexieVersion } from './dbBackup';
 
 export const db = new Dexie('ZeroAoCanadaDB');
 
@@ -93,22 +94,194 @@ db.version(8).stores({
 });
 
 /**
- * Abre o banco de forma resiliente. Caso alguma migração anterior tenha gerado conflito de chave primária,
- * reconstrói automaticamente o schema para nunca travar a UI.
+ * v9 — Fase 1 (estabilização). Apenas alterações de ÍNDICES + nova store `dailyProgress`.
+ *
+ * - Chaves primárias continuam `++id` em todas as stores antigas: o IndexedDB não permite trocar
+ *   a chave primária de uma store existente, e os ids atuais (números auto-incrementados nos
+ *   flashcards/histórico; strings como "word_A1_0", "dict_200", "c_s1_01", "vl_1" nas seeds)
+ *   são aceitos por uma store `autoIncrement` com keyPath `id`.
+ * - Removidos índices de campos extensos (textos longos, data URLs de fotos, arrays de objetos),
+ *   que só custavam espaço/tempo de escrita e nunca eram consultados.
+ * - Nenhum registro é apagado ou reescrito de forma destrutiva.
+ *
+ * A versão 10 está RESERVADA para a store `voiceRecordings` (Fase 2). Não declarar aqui.
  */
-async function ensureDbOpen() {
-  if (db.isOpen()) return;
-  try {
-    await db.open();
-  } catch (err) {
-    console.warn('Recuperando schema do IndexedDB após conflito de versão:', err);
+export const DB_NAME = 'ZeroAoCanadaDB';
+export const PHASE1_DB_VERSION = 9;
+
+db.version(PHASE1_DB_VERSION)
+  .stores({
+    flashcards:
+      '++id, category, studiedAt, *reviewDates, isMastered, nextReviewDate, repetition, interval, easeFactor, createdAt',
+    // removidos: original, corrected, explanation (texto livre)
+    errorLogs: '++id, date, source, flashcardId',
+    tcfHistory: '++id, date, mode, score, nclc',
+    dailyWords:
+      '++id, word, level, category, palavra, nivel, estudado, studiedAt, *reviewDates, isMastered, proxima_revisao',
+    // removidos: title, url
+    cartoonEpisodes: '++id, day, sprintId, level',
+    // removido: summary_text (texto livre)
+    cartoonSummaries: '++id, episode_id, study_day, date',
+    // removidos: stanzas (array de objetos), audio_url
+    guidedReading: '++id, book_title, chapter, is_completed',
+    // removido: title
+    videoLessons: '++id, youtube_id, level, topic',
+    // removido: notebook_photo_data_url (data URL de imagem — potencialmente megabytes por chave)
+    studySessions: '++id, date, is_completed',
+    // NOVO: estado dos 4 pilares diários, uma linha por data local (YYYY-MM-DD)
+    dailyProgress: 'date, studyDay, finishedAt'
+  })
+  .upgrade(async (tx) => {
+    // Normalização NÃO destrutiva: só preenche campos ausentes/inválidos com defaults seguros.
+    // Qualquer erro aqui é relançado: o Dexie aborta a transação de versionchange inteira,
+    // o banco permanece na versão anterior com todos os dados intactos.
     try {
-      await db.delete();
-      await db.open();
-    } catch (reopenErr) {
-      console.error('Erro crítico ao reabrir IndexedDB:', reopenErr);
+      await tx
+        .table('dailyWords')
+        .toCollection()
+        .modify((word) => {
+          if (!Array.isArray(word.reviewDates)) word.reviewDates = [];
+          if (!Array.isArray(word.completedReviewDates)) word.completedReviewDates = [];
+          if (typeof word.isMastered !== 'boolean') word.isMastered = Boolean(word.isMastered);
+        });
+
+      await tx
+        .table('flashcards')
+        .toCollection()
+        .modify((card) => {
+          if (!Array.isArray(card.reviewDates)) card.reviewDates = [];
+          if (typeof card.isMastered !== 'boolean') card.isMastered = Boolean(card.isMastered);
+        });
+    } catch (err) {
+      console.error('[DB v9] Falha na migração; a transação será abortada sem perda de dados:', err);
+      throw err;
+    }
+  });
+
+/**
+ * Estado observável da abertura do banco, para a UI de recuperação.
+ * state: 'idle' | 'opening' | 'ready' | 'error'
+ */
+export const dbStatus = {
+  state: 'idle',
+  error: null,
+  errorKind: null, // 'backup' | 'open' | null
+  lastBackup: null
+};
+
+const dbStatusListeners = new Set();
+export function subscribeDbStatus(listener) {
+  dbStatusListeners.add(listener);
+  return () => dbStatusListeners.delete(listener);
+}
+function setDbStatus(patch) {
+  Object.assign(dbStatus, patch);
+  dbStatusListeners.forEach((fn) => {
+    try {
+      fn({ ...dbStatus });
+    } catch {
+      // listener com erro não deve derrubar o banco
+    }
+  });
+}
+
+/** Descreve o erro para diagnóstico sem expor dados do usuário. */
+export function describeDbError(err) {
+  if (!err) return 'Erro desconhecido.';
+  const name = err.name || 'Error';
+  const inner = err.inner?.name ? ` (${err.inner.name})` : '';
+  return `${name}${inner}: ${err.message || String(err)}`;
+}
+
+let openPromise = null;
+
+/**
+ * Abre o banco de forma segura:
+ * 1. Detecta a versão existente sem criar/alterar o banco.
+ * 2. Se houver upgrade pendente, grava um snapshot completo ANTES de migrar.
+ * 3. Abre com o Dexie. Em caso de falha, registra diagnóstico e relança.
+ *
+ * NUNCA chama `db.delete()`. Uma falha de abertura deixa os dados como estão.
+ */
+async function openDatabaseSafely({ skipBackup = false } = {}) {
+  setDbStatus({ state: 'opening', error: null, errorKind: null });
+
+  if (!skipBackup) {
+    try {
+      const nativeVersion = await getRawDatabaseVersion(DB_NAME);
+      const existingVersion = nativeToDexieVersion(nativeVersion);
+      if (existingVersion > 0 && existingVersion < db.verno) {
+        const snapshot = await createSnapshot(DB_NAME, {
+          reason: `pre-upgrade v${existingVersion} -> v${db.verno}`
+        });
+        setDbStatus({ lastBackup: snapshot ? { ...snapshot, at: new Date().toISOString() } : null });
+        console.info(`[DB] Snapshot pré-migração criado (v${existingVersion} → v${db.verno}).`, snapshot?.counts);
+      }
+    } catch (err) {
+      // Sem backup, não migramos. O usuário pode exportar os dados e decidir.
+      console.error('[DB] Falha ao criar backup pré-migração. Migração adiada:', err);
+      setDbStatus({ state: 'error', error: describeDbError(err), errorKind: 'backup' });
+      throw err;
     }
   }
+
+  try {
+    await db.open();
+    setDbStatus({ state: 'ready', error: null, errorKind: null });
+  } catch (err) {
+    console.error('[DB] Falha ao abrir o IndexedDB. Nenhum dado foi apagado:', err);
+    setDbStatus({ state: 'error', error: describeDbError(err), errorKind: 'open' });
+    throw err;
+  }
+}
+
+export async function ensureDbOpen(options) {
+  if (db.isOpen()) return;
+  if (!openPromise) {
+    openPromise = openDatabaseSafely(options).catch((err) => {
+      openPromise = null; // permite nova tentativa explícita
+      throw err;
+    });
+  }
+  return openPromise;
+}
+
+/**
+ * Nova tentativa disparada pelo usuário na UI de recuperação.
+ * `skipBackup: true` só deve ser usado após o usuário exportar os dados manualmente.
+ */
+export async function retryDatabaseOpen({ skipBackup = false } = {}) {
+  openPromise = null;
+  return ensureDbOpen({ skipBackup });
+}
+
+/**
+ * Lê o estado legado salvo no localStorage (usado só para migrar flashcards/histórico
+ * para o IndexedDB quando ele está vazio). Inclui a cópia de segurança feita pelo storageService.
+ */
+function readLegacyLocalState() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const keys = [
+      'zeroAoCanadaState_legacy_backup',
+      'zeroAoCanadaState_v2',
+      'zeroAoCanadaState_v1'
+    ];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (
+        (Array.isArray(parsed?.flashcards) && parsed.flashcards.length > 0) ||
+        (Array.isArray(parsed?.tcfHistory) && parsed.tcfHistory.length > 0)
+      ) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Falha ao ler dados legados do localStorage', e);
+  }
+  return null;
 }
 
 /**
@@ -288,20 +461,11 @@ export async function initDatabase() {
     // 2. Inicializa flashcards SM-2
     const cardsCount = await db.flashcards.count();
     if (cardsCount === 0) {
-      let legacyCards = [];
-      try {
-        const saved =
-          localStorage.getItem('zeroAoCanadaState_v2') ||
-          localStorage.getItem('zeroAoCanadaState_v1');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed.flashcards) && parsed.flashcards.length > 0) {
-            legacyCards = parsed.flashcards;
-          }
-        }
-      } catch (e) {
-        console.warn('Falha ao ler dados legados do localStorage', e);
-      }
+      const legacyState = readLegacyLocalState();
+      const legacyCards =
+        Array.isArray(legacyState?.flashcards) && legacyState.flashcards.length > 0
+          ? legacyState.flashcards
+          : [];
 
       const seedSource = legacyCards.length > 0 ? legacyCards : INITIAL_FLASHCARDS;
       const now = new Date();
@@ -334,18 +498,13 @@ export async function initDatabase() {
     // 3. Inicializa histórico TCF se necessário
     const historyCount = await db.tcfHistory.count();
     if (historyCount === 0) {
-      try {
-        const saved =
-          localStorage.getItem('zeroAoCanadaState_v2') ||
-          localStorage.getItem('zeroAoCanadaState_v1');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed.tcfHistory) && parsed.tcfHistory.length > 0) {
-            await db.tcfHistory.bulkAdd(parsed.tcfHistory);
-          }
-        }
-      } catch {
-        // noop
+      const legacyState = readLegacyLocalState();
+      const legacyHistory = Array.isArray(legacyState?.tcfHistory)
+        ? legacyState.tcfHistory.filter((h) => h && h.date !== 'Exemplo Inicial')
+        : [];
+      if (legacyHistory.length > 0) {
+        // remove ids herdados para não colidir com a chave auto-incrementada
+        await db.tcfHistory.bulkAdd(legacyHistory.map(({ id, ...rest }) => rest));
       }
     }
 
@@ -532,12 +691,109 @@ export async function addErrorToDeck({ original, corrected, explanation, source 
  */
 export async function getDailyWordsDueToday(todayStr = formatDateYYYYMMDD(new Date())) {
   const words = await syncDailyDictionarySeed();
-  return words.filter(
-    (word) =>
-      !word.isMastered &&
-      Array.isArray(word.reviewDates) &&
-      word.reviewDates.includes(todayStr)
-  );
+  return words.filter((word) => isDailyWordDue(word, todayStr));
+}
+
+/**
+ * Uma palavra está pendente se ainda não foi dominada e tem alguma data do ciclo 15-30-45
+ * igual ou anterior a hoje. As datas concluídas são removidas de `reviewDates`
+ * por `completeDailyWordReview`, então qualquer data passada restante está ATRASADA
+ * (antes só a data exata contava, e revisões perdidas nunca mais eram cobradas).
+ */
+export function isDailyWordDue(word, todayStr = formatDateYYYYMMDD(new Date())) {
+  if (!word || word.isMastered || !Array.isArray(word.reviewDates)) return false;
+  return word.reviewDates.some((d) => typeof d === 'string' && d <= todayStr);
+}
+
+/**
+ * Resumo das revisões 15-30-45 pendentes para o Dashboard.
+ */
+export async function getDueReviewSummary(todayStr = formatDateYYYYMMDD(new Date())) {
+  await ensureDbOpen();
+  const [words, cards] = await Promise.all([db.dailyWords.toArray(), db.flashcards.toArray()]);
+
+  const dueWords = words.filter((w) => isDailyWordDue(w, todayStr));
+  const dueCards = cards.filter((c) => isCardDue(c, todayStr));
+  const isOverdue = (dates) => (dates || []).some((d) => typeof d === 'string' && d < todayStr);
+
+  return {
+    todayStr,
+    words: dueWords.map((w) => ({
+      id: w.id,
+      word: w.word || w.palavra || '',
+      translation: w.translation || w.traducao || '',
+      nextDate: (w.reviewDates || []).filter((d) => d <= todayStr).sort()[0] || null,
+      overdue: isOverdue(w.reviewDates)
+    })),
+    cards: dueCards.map((c) => ({ id: c.id, front: c.front || '' })),
+    overdueWordsCount: dueWords.filter((w) => isOverdue(w.reviewDates)).length,
+    total: dueWords.length + dueCards.length
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Pilares diários (store dailyProgress, v9)                           */
+/* ------------------------------------------------------------------ */
+
+export const EMPTY_PILLARS = Object.freeze({
+  dictionary: false,
+  cartoon: false,
+  reading: false,
+  videoLesson: false
+});
+
+/** Retorna o progresso de uma data (YYYY-MM-DD) ou null. */
+export async function getDailyProgress(dateStr = formatDateYYYYMMDD(new Date())) {
+  await ensureDbOpen();
+  const record = await db.dailyProgress.get(dateStr);
+  if (!record) return null;
+  return { ...record, pillars: { ...EMPTY_PILLARS, ...(record.pillars || {}) } };
+}
+
+/** Marca um pilar como concluído na data informada (persistido imediatamente). */
+export async function setDailyPillarCompleted(
+  pillarId,
+  { dateStr = formatDateYYYYMMDD(new Date()), studyDay = null, completed = true } = {}
+) {
+  if (!Object.prototype.hasOwnProperty.call(EMPTY_PILLARS, pillarId)) {
+    throw new Error(`Pilar desconhecido: ${pillarId}`);
+  }
+  await ensureDbOpen();
+  return db.transaction('rw', db.dailyProgress, async () => {
+    const existing = await db.dailyProgress.get(dateStr);
+    const now = new Date().toISOString();
+    const record = {
+      date: dateStr,
+      studyDay: existing?.studyDay ?? studyDay,
+      pillars: { ...EMPTY_PILLARS, ...(existing?.pillars || {}), [pillarId]: Boolean(completed) },
+      finishedAt: existing?.finishedAt ?? null,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    };
+    await db.dailyProgress.put(record);
+    return record;
+  });
+}
+
+/** Registra o encerramento do dia no progresso diário. */
+export async function markDailyProgressFinished(
+  { dateStr = formatDateYYYYMMDD(new Date()), studyDay = null } = {}
+) {
+  await ensureDbOpen();
+  return db.transaction('rw', db.dailyProgress, async () => {
+    const existing = await db.dailyProgress.get(dateStr);
+    const now = new Date().toISOString();
+    const record = {
+      date: dateStr,
+      studyDay: existing?.studyDay ?? studyDay,
+      pillars: { ...EMPTY_PILLARS, ...(existing?.pillars || {}) },
+      finishedAt: existing?.finishedAt ?? now,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    };
+    await db.dailyProgress.put(record);
+    return record;
+  });
 }
 
 /**
@@ -636,6 +892,15 @@ export async function completeDailyWordReview(
   const completedList = Array.isArray(word.completedReviewDates)
     ? [...word.completedReviewDates]
     : [];
+
+  // Revisão atrasada: se a data-alvo (hoje) não está no ciclo, conclui a etapa pendente
+  // mais antiga (<= data-alvo). Sem isso, revisões perdidas ficavam presas para sempre.
+  if (!currentReviewDates.includes(targetDateStr)) {
+    const overdue = currentReviewDates.filter((d) => d <= targetDateStr).sort();
+    if (overdue.length > 0) {
+      targetDateStr = overdue[0];
+    }
+  }
 
   const day45Date = currentReviewDates[currentReviewDates.length - 1];
   const isDay45Review =

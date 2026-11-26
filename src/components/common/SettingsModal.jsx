@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, CheckCircle2, AlertCircle, Eye, EyeOff, ExternalLink, X, Sparkles, Trash2 } from 'lucide-react';
-import { getGeminiApiKey, setGeminiApiKey } from '../../services/geminiService';
+import { Settings, Key, CheckCircle2, AlertCircle, Eye, EyeOff, ExternalLink, X, Sparkles, Trash2, Download } from 'lucide-react';
+import {
+  getGeminiApiKey,
+  setGeminiApiKey,
+  requestGeminiModel,
+  GEMINI_CANDIDATE_MODELS
+} from '../../services/geminiService';
+import { downloadDatabaseAsJson } from '../../services/dbBackup';
+import { DB_NAME } from '../../services/db';
 
 export function SettingsModal({ isOpen, onClose, onShowToast }) {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [hasEnvKey, setHasEnvKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState(null); // { success: boolean, message: string } | null
 
   useEffect(() => {
     if (isOpen) {
-      const currentKey = getGeminiApiKey();
-      const envKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-      setHasEnvKey(Boolean(envKey && envKey.trim()));
-      setApiKey(currentKey);
+      setApiKey(getGeminiApiKey());
       setTestResult(null);
     }
   }, [isOpen]);
@@ -26,7 +29,7 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
     setGeminiApiKey(apiKey.trim());
     setTestResult({
       success: true,
-      message: apiKey.trim() ? 'Chave salva com sucesso no armazenamento local!' : 'Chave removida. Usando chave do .env ou modo simulado.'
+      message: apiKey.trim() ? 'Chave pessoal salva neste navegador.' : 'Chave removida. Modo simulado ativo.'
     });
     if (onShowToast) {
       onShowToast(apiKey.trim() ? 'Chave Gemini salva com sucesso!' : 'Chave redefinida.', 'success');
@@ -35,13 +38,22 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
 
   const handleClear = () => {
     setGeminiApiKey('');
-    setApiKey(import.meta.env.VITE_GEMINI_API_KEY || '');
+    setApiKey('');
     setTestResult({
       success: true,
       message: 'Chave customizada removida do navegador.'
     });
     if (onShowToast) {
       onShowToast('Chave personalizada removida.', 'info');
+    }
+  };
+
+  const handleExportBackup = async () => {
+    try {
+      await downloadDatabaseAsJson(DB_NAME);
+      if (onShowToast) onShowToast('Backup exportado em JSON.', 'success');
+    } catch (err) {
+      setTestResult({ success: false, message: `Falha ao exportar backup: ${err.message}` });
     }
   };
 
@@ -63,41 +75,26 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
       let lastErr = null;
       let usedModel = null;
 
-      for (const model of ['gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.5-flash']) {
+      for (const model of GEMINI_CANDIDATE_MODELS) {
+        let result;
         try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${keyToTest}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [{ text: 'Bonjour Camille, réponds par un seul mot: "Parfait!"' }]
-                  }
-                ]
-              })
-            }
+          result = await requestGeminiModel(
+            model,
+            { contents: [{ parts: [{ text: 'Bonjour Camille, réponds par un seul mot: "Parfait!"' }] }] },
+            keyToTest
           );
-
-          if (response.ok) {
-            const data = await response.json();
-            successData = data;
-            usedModel = model;
-            break;
-          }
-
-          const errorData = await response.json().catch(() => ({}));
-          const errMsg = errorData.error?.message || `Erro HTTP ${response.status}`;
-          lastErr = new Error(`[${model}] ${errMsg}`);
-          if (response.status === 400 || response.status === 403) {
-            throw lastErr;
-          }
-        } catch (e) {
-          lastErr = e;
-          if (e.message && (e.message.includes('400') || e.message.includes('403'))) {
-            throw e;
-          }
+        } catch (networkErr) {
+          lastErr = new Error(`[${model}] Falha de rede`);
+          continue;
+        }
+        if (result.ok) {
+          successData = result.data;
+          usedModel = model;
+          break;
+        }
+        lastErr = new Error(`[${model}] ${result.errorMessage}`);
+        if ([400, 401, 403].includes(result.status)) {
+          throw lastErr;
         }
       }
 
@@ -141,7 +138,7 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 Configurações da IA
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                  Gemini 2.5 Flash
+                  Gemini Flash
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -174,7 +171,7 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
                 {isConfigured ? 'IA Multimodal Pronta e Conectada' : 'Modo Simulado / Fallback Ativo'}
               </span>
               {isConfigured ? (
-                <>Sua chave do Gemini 2.5 Flash está configurada {hasEnvKey ? '(via .env ou personalizada)' : '(no navegador)'}. As gravações de áudio serão analisadas com fonética real pelo Google AI.</>
+                <>Sua chave pessoal do Gemini está configurada neste navegador. As gravações de áudio serão analisadas com fonética real pelo Google AI.</>
               ) : (
                 <>Nenhuma chave foi inserida. O portal funciona normalmente no modo simulado com feedbacks fonéticos estruturados e tutoria da Prof. Camille.</>
               )}
@@ -221,7 +218,7 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
               </div>
             </div>
             <p className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
-              <span>Sua chave é armazenada de forma segura no seu navegador.</span>
+              <span>Chave pessoal salva só neste navegador (localStorage, não é cofre secreto). Use uma chave sua, com cota limitada.</span>
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
@@ -245,6 +242,21 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
               {testResult.message}
             </div>
           )}
+
+          {/* Backup manual dos dados locais (IndexedDB) */}
+          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Backup dos seus dados de estudo (palavras, cartões, histórico, sessões). Um snapshot automático também é criado antes de cada atualização do banco.
+            </p>
+            <button
+              type="button"
+              onClick={handleExportBackup}
+              className="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5 text-rose-500" />
+              Exportar JSON
+            </button>
+          </div>
         </div>
 
         {/* Footer Actions */}
