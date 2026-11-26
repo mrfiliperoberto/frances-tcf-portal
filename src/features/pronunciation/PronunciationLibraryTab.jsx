@@ -17,6 +17,7 @@ import { PRONUNCIATION_DICT } from '../../data/pronunciationDict';
 import { db, syncDailyDictionarySeed } from '../../services/db';
 import { useFrenchAudio } from '../../hooks/useFrenchAudio';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
+import { playFrench, stopFrench } from '../../services/ttsService';
 import { evaluateShadowingAudio, getGeminiApiKey } from '../../services/geminiService';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -40,6 +41,21 @@ function getNormalizedFirstLetter(word) {
  */
 function cleanWordForSpeech(word) {
   return (word || '').replace(/\s*\(.*?\)\s*/g, '').trim();
+}
+
+/**
+ * Se a URL for do Google Translate TTS, retorna o texto (parâmetro q); senão, null.
+ */
+function getGoogleTtsText(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'translate.google.com' && parsed.pathname === '/translate_tts') {
+      return parsed.searchParams.get('q') || '';
+    }
+  } catch (_) {
+    // URL relativa ou inválida: não é Google TTS
+  }
+  return null;
 }
 
 /**
@@ -238,31 +254,45 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
           htmlAudioRef.current.currentTime = 0;
         } catch (_) {}
       }
+      stopFrench();
 
-      const fallbackToTTS = () => {
+      // Google TTS (proxy /__tts) com fallback speechSynthesis, via ttsService.
+      // Badge: 'human' quando o áudio veio do proxy (comportamento anterior), 'tts' na voz do navegador.
+      const playViaTtsService = async (text) => {
         setPlayingNativeId(word.id);
-        setAudioSourceBadge((prev) => ({ ...prev, [word.id]: 'tts' }));
-        speakText(cleanWordForSpeech(word.word), 0.88);
-        setTimeout(() => {
+        try {
+          const { source } = await playFrench(text, { rate: 0.88 });
+          if (source) {
+            setAudioSourceBadge((prev) => ({
+              ...prev,
+              [word.id]: source === 'proxy' ? 'human' : 'tts'
+            }));
+          }
+        } catch (_) {
+          if (onShowToast) onShowToast('Não foi possível reproduzir o áudio.', 'error');
+        } finally {
           setPlayingNativeId((curr) => (curr === word.id ? null : curr));
-        }, 1200);
+        }
       };
+
+      const fallbackToTTS = () => playViaTtsService(cleanWordForSpeech(word.word));
 
       if (!word.humanAudioUrl) {
         fallbackToTTS();
         return;
       }
 
+      const googleTtsText = getGoogleTtsText(word.humanAudioUrl);
+      if (googleTtsText !== null) {
+        playViaTtsService(googleTtsText || cleanWordForSpeech(word.word));
+        return;
+      }
+
       setPlayingNativeId(word.id);
 
       try {
-        // Se for URL do Google Translate TTS, usa o proxy local /__tts para evitar bloqueio ORB/CORS do navegador
-        const isGoogleTts = word.humanAudioUrl.includes('translate.google.com/translate_tts');
-        const effectiveSrc = isGoogleTts
-          ? `/__tts?url=${encodeURIComponent(word.humanAudioUrl)}`
-          : word.humanAudioUrl;
-
-        const res = await fetch(effectiveSrc, { cache: 'force-cache' });
+        // Áudio humano hospedado em outra origem: toca direto; se falhar, usa o ttsService.
+        const res = await fetch(word.humanAudioUrl, { cache: 'force-cache' });
         const contentType = (res.headers.get('content-type') || '').toLowerCase();
 
         if (!res.ok || (!contentType.includes('audio') && !contentType.includes('mpeg') && !contentType.includes('ogg'))) {
@@ -302,8 +332,10 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
         fallbackToTTS();
       }
     },
-    [speakText]
+    [onShowToast]
   );
+
+  useEffect(() => () => stopFrench(), []);
 
   /**
    * Salva a palavra diretamente no Deck SM-2 (IndexedDB)

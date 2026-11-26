@@ -34,6 +34,7 @@ import {
   EMPTY_PILLARS
 } from '../../services/db';
 import { formatDateYYYYMMDD } from '../../services/sm2Algorithm';
+import { playFrench, stopFrench } from '../../services/ttsService';
 
 function toDateKey(dateInput) {
   try {
@@ -356,6 +357,8 @@ export function DailyDashboard({
     loadDashboardData();
   }, [loadDashboardData]);
 
+  useEffect(() => () => stopFrench(), []);
+
   // Nível adequado para o currentStudyDay
   const targetLevel = useMemo(
     () => getTargetLevelForDay(currentStudyDay),
@@ -403,15 +406,11 @@ export function DailyDashboard({
 
   const playWordPreviewAudio = (text) => {
     if (!text) return;
-    try {
-      const url =
-        'https://translate.google.com/translate_tts?ie=UTF-8&q=' +
-        encodeURIComponent(text) +
-        '&tl=fr-CA&client=tw-ob';
-      new Audio(url).play().catch(() => {});
-    } catch {
-      // noop
-    }
+    playFrench(text).catch(() => {
+      if (onShowToast) {
+        onShowToast('Não foi possível reproduzir o áudio.', 'error');
+      }
+    });
   };
 
   const pillars = [
