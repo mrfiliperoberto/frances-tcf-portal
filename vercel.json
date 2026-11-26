@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/__tts", "destination": "/api/tts" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
-
