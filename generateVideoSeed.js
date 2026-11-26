@@ -193,11 +193,11 @@ export const VIDEO_LESSON_SEED = ${JSON.stringify(seedItems, null, 2)};
 export default VIDEO_LESSON_SEED;
 `;
 
-  // Os dias 1-90 agora são um currículo curado à mão (tema, resumo, canal). Não sobrescrever sem querer.
+  // Os dias 1-180 agora são um currículo curado à mão (tema, resumo, canal). Não sobrescrever sem querer.
   const existing = fs.existsSync(OUTPUT_PATH) ? fs.readFileSync(OUTPUT_PATH, 'utf-8') : '';
   if (existing.includes('currículo por tema') && !process.argv.includes('--force')) {
     console.error(
-      '\n⛔ videoLessonSeed.js contém o currículo curado dos dias 1-90 e NÃO foi sobrescrito.\n' +
+      '\n⛔ videoLessonSeed.js contém o currículo curado dos dias 1-180 e NÃO foi sobrescrito.\n' +
         '   Use `npm run seed:videos -- --force` apenas se quiser realmente descartar a curadoria.'
     );
     process.exitCode = 1;
