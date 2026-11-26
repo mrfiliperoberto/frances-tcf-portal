@@ -1,28 +1,46 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Newspaper } from 'lucide-react';
 import { NEWSLETTER_SEED } from '../../data/newsletterSeed';
 import { ArticlePicker } from './ArticlePicker';
 import { ArticleReader } from './ArticleReader';
-import { getNextArticle } from './articleNavigation';
+import { getNextArticle, readArticleFromState, withArticleState } from './articleNavigation';
+
+const hasWindow = () => typeof window !== 'undefined';
+const hasHistory = () => hasWindow() && typeof window.history?.pushState === 'function';
+const articleExists = (id) => NEWSLETTER_SEED.some((article) => article.id === id);
 
 const scrollWindowTo = (top) => {
-  if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+  if (hasWindow() && typeof window.scrollTo === 'function') {
     window.scrollTo({ top, behavior: 'auto' });
   }
 };
+
+/** Matéria aberta segundo o histórico do navegador (ex.: após recarregar a página lendo). */
+function articleFromHistory() {
+  if (!hasHistory()) return null;
+  const id = readArticleFromState(window.history.state);
+  return id && articleExists(id) ? id : null;
+}
 
 /**
  * Le Courrier Francophone: capa (filtro + cards) e página da matéria.
  * Abrir uma matéria troca a capa pela página de leitura, já no topo; voltar restaura a capa
  * na mesma posição de rolagem e com o mesmo filtro.
+ *
+ * Abrir uma matéria cria uma entrada no histórico do navegador, então o botão/gesto "voltar"
+ * (navegador ou celular) volta para a capa em vez de sair da aba. "Próxima matéria" substitui a
+ * entrada, para que voltar leve sempre à capa.
  */
 export function NewsletterTab({ onAddCard, onShowToast }) {
-  const [openArticleId, setOpenArticleId] = useState(null);
-  const [lastOpenedId, setLastOpenedId] = useState(null);
+  const [openArticleId, setOpenArticleId] = useState(articleFromHistory);
+  const [lastOpenedId, setLastOpenedId] = useState(articleFromHistory);
   const [levelFilter, setLevelFilter] = useState('Todos');
   const coverScrollRef = useRef(0);
   const pendingScrollRef = useRef(null);
+  // Valor atual de openArticleId para os handlers do popstate (registrados uma única vez)
+  const openArticleIdRef = useRef(openArticleId);
+  openArticleIdRef.current = openArticleId;
 
   const openArticle = NEWSLETTER_SEED.find((article) => article.id === openArticleId) || null;
   const nextArticle = openArticle ? getNextArticle(NEWSLETTER_SEED, levelFilter, openArticle.id) : null;
@@ -35,8 +53,9 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
     }
   }, [openArticleId]);
 
-  const showArticle = (articleId) => {
-    if (!openArticleId && typeof window !== 'undefined') {
+  // Só troca a tela (sem mexer no histórico)
+  const displayArticle = (articleId) => {
+    if (!openArticleIdRef.current && hasWindow()) {
       coverScrollRef.current = window.scrollY || 0;
     }
     pendingScrollRef.current = 0;
@@ -44,10 +63,49 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
     setOpenArticleId(articleId);
   };
 
-  const showCover = () => {
+  const displayCover = () => {
     pendingScrollRef.current = coverScrollRef.current;
     setOpenArticleId(null);
   };
+
+  // Card da capa: nova entrada no histórico. Próxima matéria: substitui a entrada atual.
+  const showArticle = (articleId) => {
+    if (hasHistory()) {
+      const state = withArticleState(window.history.state, articleId);
+      if (openArticleIdRef.current) window.history.replaceState(state, '');
+      else window.history.pushState(state, '');
+    }
+    displayArticle(articleId);
+  };
+
+  // Botão "Voltar às edições": usa o histórico quando a entrada é nossa, para não deixar
+  // uma entrada "fantasma" que exigiria apertar voltar duas vezes.
+  const showCover = () => {
+    if (hasHistory() && readArticleFromState(window.history.state) === openArticleIdRef.current) {
+      window.history.back(); // o popstate abaixo mostra a capa
+      return;
+    }
+    displayCover();
+  };
+
+  useEffect(() => {
+    if (!hasHistory()) return undefined;
+    const onPopState = (event) => {
+      const id = readArticleFromState(event.state);
+      if (id && articleExists(id)) displayArticle(id);
+      else if (openArticleIdRef.current) displayCover();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      // Saindo da aba com uma matéria aberta: limpa a marca para não reabrir sozinha depois
+      if (readArticleFromState(window.history.state)) {
+        window.history.replaceState(withArticleState(window.history.state, null), '');
+      }
+    };
+    // displayArticle/displayCover só usam refs e setters estáveis
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (openArticle) {
     return (

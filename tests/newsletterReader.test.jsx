@@ -66,3 +66,32 @@ describe('ArticleReader (SSR)', () => {
     expect(html).not.toContain('Próxima matéria');
   });
 });
+
+describe('NewsletterTab + browser history (SSR)', () => {
+  it('opens the article stored in history.state (e.g. after a reload while reading)', async () => {
+    const { vi } = await import('vitest');
+    vi.stubGlobal('window', {
+      history: { state: { [HISTORY_KEY]: 'news-3' }, pushState: noop, replaceState: noop, back: noop },
+      scrollY: 0
+    });
+    const { NewsletterTab } = await import('../src/features/newsletter/NewsletterTab.jsx');
+    const html = renderToString(<NewsletterTab />);
+    const news3 = NEWSLETTER_SEED.find((a) => a.id === 'news-3');
+    expect(html).toContain('Voltar às edições');
+    expect(html).toContain(escapeHtml(news3.headline_fr));
+    vi.unstubAllGlobals();
+  });
+
+  it('ignores unknown article ids in history.state and shows the cover', async () => {
+    const { vi } = await import('vitest');
+    vi.stubGlobal('window', {
+      history: { state: { [HISTORY_KEY]: 'news-999' }, pushState: noop, replaceState: noop, back: noop },
+      scrollY: 0
+    });
+    const { NewsletterTab } = await import('../src/features/newsletter/NewsletterTab.jsx');
+    const html = renderToString(<NewsletterTab />);
+    expect(html).toContain('Filtrar por nível');
+    expect(html).not.toContain('Voltar às edições');
+    vi.unstubAllGlobals();
+  });
+});
