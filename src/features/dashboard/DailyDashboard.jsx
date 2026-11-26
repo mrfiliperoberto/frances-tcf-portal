@@ -390,7 +390,7 @@ export function DailyDashboard({
   // Pilar 3: Leitura Guiada - Le Petit Prince
   const readingBook = LE_PETIT_PRINCE_BOOK;
 
-  // Pilar 4: Videoaula correspondente ao currentStudyDay
+  // Pilar 4: Teoria em Vídeo correspondente ao currentStudyDay
   const videoLessonOfTheDay = useMemo(
     () => findVideoLessonForDay(currentStudyDay),
     [currentStudyDay]
@@ -457,7 +457,7 @@ export function DailyDashboard({
     {
       id: 'videoLesson',
       badge: `Pilar 4 • Gramática (${videoLessonOfTheDay?.level || targetLevel})`,
-      title: 'Videoaula',
+      title: 'Teoria em Vídeo',
       topicTitle:
         videoLessonOfTheDay?.title || 'O Alfabeto Francês e Sons Essenciais',
       subtitle: `Aula técnica do Jour ${currentStudyDay} • Nível ${
@@ -465,7 +465,7 @@ export function DailyDashboard({
       }`,
       notebookSubject: 'Matéria 4 • Gramática Estrutural & Regras',
       tabId: 'videoaula',
-      ctaLabel: 'Assistir Videoaula',
+      ctaLabel: 'Assistir Teoria',
       icon: GraduationCap
     }
   ];

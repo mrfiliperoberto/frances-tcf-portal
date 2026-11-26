@@ -88,7 +88,7 @@ export function VideoLessonTab({ onCompleteDayStreak, onShowToast }) {
         setSelectedLessonId(dayMatch.id);
       }
     } catch (err) {
-      console.error('Erro ao carregar Videoaulas do IndexedDB:', err);
+      console.error('Erro ao carregar Teoria em Vídeo do IndexedDB:', err);
       setLessons(VIDEO_LESSON_SEED);
     } finally {
       setIsLoading(false);
@@ -251,7 +251,7 @@ export function VideoLessonTab({ onCompleteDayStreak, onShowToast }) {
   if (isLoading || !currentLesson) {
     return (
       <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-sans">
-        Carregando Videoaula e Fechamento do IndexedDB...
+        Carregando Teoria em Vídeo...
       </div>
     );
   }
@@ -281,7 +281,7 @@ export function VideoLessonTab({ onCompleteDayStreak, onShowToast }) {
           </div>
 
           <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight text-slate-900 dark:text-white">
-            Videoaula e Fechamento
+            Teoria em Vídeo
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
             Assista à aula técnica do dia, tome notas à mão em seu caderno físico e anexe o registro fotográfico para selar sua missão diária no IndexedDB.

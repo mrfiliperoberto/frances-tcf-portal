@@ -39,7 +39,7 @@ export const NAVIGATION_GROUPS = [
       { id: 'dicionario', label: 'Dicionário Diário', icon: BookMarked },
       { id: 'cartoon', label: 'Daily Cartoon', icon: Clapperboard },
       { id: 'leitura', label: 'Leitura Guiada', icon: BookOpen },
-      { id: 'videoaula', label: 'Videoaula e Fechamento', icon: CheckCircle2 },
+      { id: 'videoaula', label: 'Teoria em Vídeo', icon: CheckCircle2 },
       { id: 'cinema', label: 'YouTube Cinema', icon: MonitorPlay },
       { id: 'aulas', label: 'Aulas Estruturadas', icon: GraduationCap }
     ]
