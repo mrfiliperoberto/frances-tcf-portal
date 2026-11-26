@@ -54,6 +54,15 @@ export function ArticlePicker({ articles, selectedId, levelFilter, onLevelChange
                   : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-red-700/40'
               }`}
             >
+              {article.image && (
+                <img
+                  src={article.image}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full aspect-[16/9] object-cover rounded-xl bg-slate-200 dark:bg-slate-800"
+                />
+              )}
               <span className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-widest text-red-700 dark:text-red-400">
                 <span className="truncate">{article.category}</span>
                 <span className="px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono normal-case tracking-normal shrink-0">

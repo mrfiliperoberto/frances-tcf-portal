@@ -183,6 +183,15 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
       <article className="p-6 sm:p-10 lg:p-12 rounded-3xl bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-8">
         {/* Metadados e Manchete em Playfair Display */}
         <div className="space-y-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+          {currentArticle.image && (
+            <img
+              key={currentArticle.id}
+              src={currentArticle.image}
+              alt={currentArticle.imageAlt || ''}
+              decoding="async"
+              className="w-full aspect-[3/2] sm:aspect-[2/1] object-cover rounded-2xl bg-slate-100 dark:bg-slate-800"
+            />
+          )}
           <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-red-700 dark:text-red-400">
             <span>{currentArticle.category}</span>
             <span>•</span>

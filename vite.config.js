@@ -108,6 +108,18 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/__tts/, /^\/__health/],
         runtimeCaching: [
           {
+            // Ilustrações da newsletter: fora do precache, guardadas quando vistas pela 1ª vez.
+            urlPattern: ({ url }) => url.pathname.startsWith('/newsletter/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'newsletter-images',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 dias
+              }
+            }
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {

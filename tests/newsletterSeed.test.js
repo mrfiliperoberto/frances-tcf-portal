@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { existsSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { NEWSLETTER_SEED } from '../src/data/newsletterSeed.js';
+
+const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
+const MAX_IMAGE_BYTES = 400 * 1024;
 
 const REQUIRED_STRING_FIELDS = [
   'id',
@@ -58,6 +63,15 @@ describe('Newsletter seed (Le Courrier Francophone)', () => {
         expect(isNonEmptyString(segment?.fr), `${where}: empty fr`).toBe(true);
         expect(isNonEmptyString(segment?.pt), `${where}: empty pt`).toBe(true);
       });
+    });
+
+    it('has a valid optional illustration (existing /newsletter/*.webp with alt text)', () => {
+      if (article.image === undefined) return;
+      expect(article.image).toMatch(/^\/newsletter\/[\w-]+\.webp$/);
+      const file = `${PUBLIC_DIR}${article.image}`;
+      expect(existsSync(file), `${article.id}: missing ${file}`).toBe(true);
+      expect(statSync(file).size, `${article.id}: image too large`).toBeLessThanOrEqual(MAX_IMAGE_BYTES);
+      expect(isNonEmptyString(article.imageAlt), `${article.id}: missing imageAlt`).toBe(true);
     });
 
     it(`has no segment.fr longer than ${MAX_SEGMENT_FR_LENGTH} characters`, () => {
