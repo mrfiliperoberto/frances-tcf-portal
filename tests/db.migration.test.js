@@ -63,7 +63,7 @@ afterEach(() => {
   openedDb = null;
 });
 
-describe('Migração v8 → v9', () => {
+describe('Migração v8 → v10 (passando pela v9)', () => {
   it('preserva todos os registros, ajusta índices e cria a store dailyProgress', async () => {
     const before = await seedLegacyV8();
 
@@ -71,7 +71,7 @@ describe('Migração v8 → v9', () => {
     openedDb = mod.db;
     await mod.initDatabase();
 
-    expect(mod.db.verno).toBe(9);
+    expect(mod.db.verno).toBe(10);
     expect(mod.dbStatus.state).toBe('ready');
     const after = await readAllRaw(mod.db);
 
@@ -296,7 +296,63 @@ describe('Falhas de abertura nunca apagam dados', () => {
 
     await mod.retryDatabaseOpen();
     expect(mod.dbStatus.state).toBe('ready');
-    expect(mod.db.verno).toBe(9);
+    expect(mod.db.verno).toBe(10);
     vi.doUnmock('../src/services/dbBackup.js');
+  });
+});
+
+// Schema v9 (Fase 1) como está em produção antes da v10.
+const V9_SCHEMA = {
+  flashcards:
+    '++id, category, studiedAt, *reviewDates, isMastered, nextReviewDate, repetition, interval, easeFactor, createdAt',
+  errorLogs: '++id, date, source, flashcardId',
+  tcfHistory: '++id, date, mode, score, nclc',
+  dailyWords:
+    '++id, word, level, category, palavra, nivel, estudado, studiedAt, *reviewDates, isMastered, proxima_revisao',
+  cartoonEpisodes: '++id, day, sprintId, level',
+  cartoonSummaries: '++id, episode_id, study_day, date',
+  guidedReading: '++id, book_title, chapter, is_completed',
+  videoLessons: '++id, youtube_id, level, topic',
+  studySessions: '++id, date, is_completed',
+  dailyProgress: 'date, studyDay, finishedAt'
+};
+
+describe('Migração v9 → v10 (voiceRecordings)', () => {
+  it('preserva todos os dados, cria snapshot e adiciona a store voiceRecordings vazia', async () => {
+    const legacy = new Dexie(DB_NAME);
+    legacy.version(9).stores(V9_SCHEMA);
+    await legacy.open();
+    await legacy.flashcards.add({ category: 'Pessoal', front: 'la maison', back: 'a casa', reviewDates: [], isMastered: false });
+    await legacy.dailyWords.put({ id: 'dict_200', word: 'abandonner', reviewCount: 5, reviewDates: [], isMastered: false });
+    await legacy.dailyProgress.put({ date: '2026-11-24', studyDay: 3, pillars: { dictionary: true }, finishedAt: null });
+    const before = {};
+    for (const t of legacy.tables) before[t.name] = await t.toArray();
+    legacy.close();
+
+    const mod = await import('../src/services/db.js');
+    openedDb = mod.db;
+    await mod.initDatabase();
+
+    expect(mod.dbStatus.state).toBe('ready');
+    expect(mod.db.verno).toBe(10);
+    const after = await readAllRaw(mod.db);
+    for (const store of Object.keys(V9_SCHEMA)) {
+      for (const record of before[store]) {
+        const key = store === 'dailyProgress' ? 'date' : 'id';
+        expect(after[store].find((r) => r[key] === record[key]), `${store} perdeu registro`).toBeTruthy();
+      }
+    }
+    expect(after.dailyWords.find((w) => w.id === 'dict_200').reviewCount).toBe(5);
+    expect(after.dailyProgress[0].pillars.dictionary).toBe(true);
+
+    expect(after.voiceRecordings).toEqual([]);
+    const idx = Object.keys(mod.db.voiceRecordings.schema.idxByName);
+    expect(idx).toEqual(expect.arrayContaining(['wordId', 'recordedAt', 'source']));
+
+    const backup = await import('../src/services/dbBackup.js');
+    const snaps = await backup.listSnapshots();
+    expect(snaps).toHaveLength(1);
+    expect(snaps[0].fromVersion).toBe(9);
+    expect(snaps[0].counts.dailyWords).toBe(1);
   });
 });

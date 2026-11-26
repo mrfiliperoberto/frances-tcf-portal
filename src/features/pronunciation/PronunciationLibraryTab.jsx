@@ -19,6 +19,14 @@ import { useFrenchAudio } from '../../hooks/useFrenchAudio';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { playFrench, stopFrench } from '../../services/ttsService';
 import { evaluateShadowingAudio, getGeminiApiKey } from '../../services/geminiService';
+import {
+  saveVoiceRecording,
+  countRecordingsByWord,
+  setRecordingEvaluation,
+  requestPersistentStorage,
+  formatRecordingDateTime
+} from '../../services/voiceRecordings';
+import { RecordingHistory } from './RecordingHistory';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const PRONUNCIATION_LEVELS = ['Todos', 'A1', 'A2', 'B1', 'B2'];
@@ -92,6 +100,27 @@ function getSmartPhoneticTip(item) {
   return hints.join(' ');
 }
 
+/**
+ * Contadores de acesso sempre visíveis: quantas vezes a palavra foi ouvida (áudio nativo +
+ * frase de exemplo) e quantas gravações dela estão salvas.
+ */
+export function AccessCounters({ listenCount = 0, recordCount = 0 }) {
+  const pill =
+    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+      <span className={pill} title="Vezes que você ouviu esta palavra (áudio nativo e frase de exemplo)">
+        <Headphones className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+        Ouvida {listenCount}x
+      </span>
+      <span className={pill} title="Gravações suas desta palavra salvas no aparelho">
+        <Mic className="w-3 h-3 text-rose-500" />
+        Gravada {recordCount}x
+      </span>
+    </div>
+  );
+}
+
 export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   // Lista de palavras sincronizada com o IndexedDB (incluindo reviewCount)
   const [words, setWords] = useState(() =>
@@ -107,7 +136,10 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   const [selectedLetter, setSelectedLetter] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sincroniza reviewCount do IndexedDB (db.dailyWords) ao montar
+  // Contador de gravações salvas por palavra (wordId → quantidade), vindo de db.voiceRecordings
+  const [recordCounts, setRecordCounts] = useState(() => new Map());
+
+  // Sincroniza reviewCount (ouvidas) e contagem de gravações do IndexedDB ao montar
   useEffect(() => {
     let isMounted = true;
     async function loadWordsWithReviewCounts() {
@@ -134,6 +166,11 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
       }
     }
     loadWordsWithReviewCounts();
+    countRecordingsByWord()
+      .then((counts) => {
+        if (isMounted) setRecordCounts(counts);
+      })
+      .catch((err) => console.error('Erro ao contar gravações da Biblioteca de Pronúncia:', err));
     return () => {
       isMounted = false;
     };
@@ -152,6 +189,22 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   const [evaluatingCardId, setEvaluatingCardId] = useState(null);
   const [evaluationsByCard, setEvaluationsByCard] = useState({});
   const [recordedAudioByCard, setRecordedAudioByCard] = useState({});
+  // id em db.voiceRecordings da última gravação salva de cada card (para anexar a nota do Gemini)
+  const [savedRecordingIdByCard, setSavedRecordingIdByCard] = useState({});
+  // Palavra e instante de início da gravação em andamento; lido quando o Blob final fica pronto
+  const recordingTargetRef = useRef(null);
+  const lastSavedBlobRef = useRef(null);
+  // Incrementado quando uma gravação é salva ou avaliada, para o histórico aberto recarregar
+  const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
+
+  const handleRecordingDeleted = useCallback((wordId) => {
+    setRecordCounts((prev) => {
+      const next = new Map(prev);
+      const key = String(wordId);
+      next.set(key, Math.max(0, (next.get(key) || 0) - 1));
+      return next;
+    });
+  }, []);
 
   const { speakText } = useFrenchAudio();
   const {
@@ -196,6 +249,49 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
     }
   }, [audioUrl, activeRecordCardId]);
 
+  // Quando o gravador entrega o Blob final, salva a gravação com data/hora em db.voiceRecordings
+  useEffect(() => {
+    const target = recordingTargetRef.current;
+    if (!audioBlob || !target || lastSavedBlobRef.current === audioBlob) return;
+    lastSavedBlobRef.current = audioBlob;
+    recordingTargetRef.current = null;
+    const durationSec = (Date.now() - target.startedAt.getTime()) / 1000;
+
+    (async () => {
+      try {
+        const saved = await saveVoiceRecording({
+          wordId: target.wordId,
+          word: target.word,
+          blob: audioBlob,
+          mimeType,
+          durationSec,
+          recordedAt: target.startedAt
+        });
+        if (!saved) {
+          if (onShowToast) onShowToast('Gravação muito curta: não foi salva.', 'error');
+          return;
+        }
+        setRecordCounts((prev) => {
+          const next = new Map(prev);
+          next.set(saved.wordId, (next.get(saved.wordId) || 0) + 1);
+          return next;
+        });
+        setSavedRecordingIdByCard((prev) => ({ ...prev, [target.wordId]: saved.id }));
+        setHistoryRefreshToken((n) => n + 1);
+        requestPersistentStorage();
+        if (onShowToast) {
+          onShowToast(
+            `🎙️ Gravação de "${target.word}" salva (${formatRecordingDateTime(saved.recordedAt)})`,
+            'success'
+          );
+        }
+      } catch (err) {
+        console.error('Erro ao salvar gravação no IndexedDB:', err);
+        if (onShowToast) onShowToast('Não foi possível salvar a gravação.', 'error');
+      }
+    })();
+  }, [audioBlob, mimeType, onShowToast]);
+
   useEffect(() => {
     if (recorderError && onShowToast) {
       onShowToast(recorderError, 'error');
@@ -222,31 +318,43 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   }, [words, selectedLevel, selectedCategory, selectedLetter, searchQuery]);
 
   /**
-   * Toca o áudio humano nativo via tag HTML5 <audio> e incrementa reviewCount no IndexedDB.
+   * Conta um acesso de escuta (áudio nativo ou frase de exemplo): incrementa reviewCount em
+   * db.dailyWords e atualiza o estado local imediatamente.
+   */
+  const incrementListenCount = useCallback(async (word) => {
+    try {
+      const currentWord = await db.dailyWords.get(word.id);
+      const newCount = (currentWord?.reviewCount || 0) + 1;
+      if (currentWord) {
+        await db.dailyWords.update(word.id, { reviewCount: newCount });
+      } else {
+        await db.dailyWords.put({ ...word, reviewCount: newCount });
+      }
+      setWords((prev) =>
+        prev.map((w) => (w.id === word.id ? { ...w, reviewCount: newCount } : w))
+      );
+    } catch (err) {
+      console.error('Erro ao atualizar reviewCount no IndexedDB:', err);
+      setWords((prev) =>
+        prev.map((w) =>
+          w.id === word.id ? { ...w, reviewCount: (w.reviewCount || 0) + 1 } : w
+        )
+      );
+    }
+  }, []);
+
+  const handlePlayExample = (item) => {
+    incrementListenCount(item);
+    speakText(item.example, 0.92);
+  };
+
+  /**
+   * Toca o áudio humano nativo via tag HTML5 <audio> e conta o acesso de escuta.
    * Se falhar (CORS, 404, offline, URL vazia), aciona silenciosamente o fallback TTS (useFrenchAudio).
    */
   const handlePlayNativeAudio = useCallback(
     async (word) => {
-      // Incrementa reviewCount no Dexie (db.dailyWords) e atualiza o estado local imediatamente
-      try {
-        const currentWord = await db.dailyWords.get(word.id);
-        const newCount = (currentWord?.reviewCount || 0) + 1;
-        if (currentWord) {
-          await db.dailyWords.update(word.id, { reviewCount: newCount });
-        } else {
-          await db.dailyWords.put({ ...word, reviewCount: newCount });
-        }
-        setWords((prev) =>
-          prev.map((w) => (w.id === word.id ? { ...w, reviewCount: newCount } : w))
-        );
-      } catch (err) {
-        console.error('Erro ao atualizar reviewCount no IndexedDB:', err);
-        setWords((prev) =>
-          prev.map((w) =>
-            w.id === word.id ? { ...w, reviewCount: (w.reviewCount || 0) + 1 } : w
-          )
-        );
-      }
+      incrementListenCount(word);
 
       if (htmlAudioRef.current) {
         try {
@@ -332,7 +440,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
         fallbackToTTS();
       }
     },
-    [onShowToast]
+    [onShowToast, incrementListenCount]
   );
 
   useEffect(() => () => stopFrench(), []);
@@ -365,18 +473,19 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
    * Inicia ou para a gravação no card selecionado
    */
   const handleToggleRecordCard = async (item) => {
-    if (isRecording && activeRecordCardId === item.id) {
+    if (isRecording) {
+      // Para (e salva) a gravação em andamento. Se o clique foi em outro card, não inicia outra
+      // na mesma hora: o Blob anterior chega de forma assíncrona e seria atribuído à palavra errada.
       stopRecording();
       return;
     }
 
-    if (isRecording) {
-      stopRecording();
-    }
-
     clearRecording();
     setActiveRecordCardId(item.id);
-    await startRecording();
+    const started = await startRecording();
+    if (started) {
+      recordingTargetRef.current = { wordId: item.id, word: item.word, startedAt: new Date() };
+    }
   };
 
   /**
@@ -409,6 +518,16 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
         ...prev,
         [item.id]: result
       }));
+
+      const savedId = savedRecordingIdByCard[item.id];
+      if (savedId !== undefined) {
+        setRecordingEvaluation(savedId, {
+          score: result.pronunciationScore,
+          feedback: result.surgicalFeedback
+        })
+          .then(() => setHistoryRefreshToken((n) => n + 1))
+          .catch((err) => console.error('Erro ao salvar avaliação da gravação:', err));
+      }
 
       if (onShowToast) {
         onShowToast(
@@ -608,13 +727,8 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-display font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white flex items-center">
-                          <span>{item.word}</span>
-                          {item.reviewCount > 0 && (
-                            <span className="text-xs text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-full ml-2">
-                              🎧 {item.reviewCount}x
-                            </span>
-                          )}
+                        <h3 className="font-display font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white">
+                          {item.word}
                         </h3>
                         <span className="px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-500 font-mono text-xs sm:text-sm font-bold border border-rose-500/20">
                           {item.ipa}
@@ -623,6 +737,10 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
                       <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
                         {item.translation}
                       </p>
+                      <AccessCounters
+                        listenCount={item.reviewCount || 0}
+                        recordCount={recordCounts.get(String(item.id)) || 0}
+                      />
                     </div>
 
                     <div className="flex flex-col items-end gap-1 shrink-0">
@@ -650,7 +768,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
                         </span>
                         <button
                           type="button"
-                          onClick={() => speakText(item.example, 0.92)}
+                          onClick={() => handlePlayExample(item)}
                           className="shrink-0 p-1.5 rounded-lg bg-slate-200/70 dark:bg-slate-800 hover:bg-rose-500/20 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
                           title="Ouvir frase de exemplo"
                         >
@@ -796,6 +914,16 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
                       )}
                     </div>
                   )}
+
+                  {/* Histórico de gravações salvas desta palavra */}
+                  <RecordingHistory
+                    wordId={item.id}
+                    word={item.word}
+                    recordCount={recordCounts.get(String(item.id)) || 0}
+                    refreshToken={historyRefreshToken}
+                    onDeleted={handleRecordingDeleted}
+                    onShowToast={onShowToast}
+                  />
                 </div>
               </div>
             );
