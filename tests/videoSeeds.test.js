@@ -10,7 +10,7 @@ describe('Daily Cartoon seed', () => {
   it('covers consecutive days from 1 with exactly one episode per day', () => {
     const days = episodes.map((ep) => ep.day);
     expect(days).toEqual(Array.from({ length: days.length }, (_, i) => i + 1));
-    expect(days.length).toBeGreaterThanOrEqual(90);
+    expect(days.length).toBeGreaterThanOrEqual(180);
   });
 
   it('has unique episode ids that encode sprint and day', () => {
