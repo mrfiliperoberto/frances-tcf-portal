@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/jobs.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/__tts", "destination": "/api/tts" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import https from 'node:https';
@@ -56,10 +56,28 @@ function googleTtsProxyPlugin() {
   };
 }
 
+// Serve /api/jobs no `vite dev` com o mesmo handler da função do Vercel (api/jobs.js).
+function jobsApiPlugin() {
+  return {
+    name: 'jobs-api',
+    configureServer(server) {
+      // SERPAPI_KEY (opcional, Google Jobs) vem do .env.local e fica só no servidor:
+      // sem prefixo VITE_, o Vite não o coloca no bundle do navegador.
+      const env = loadEnv(server.config.mode, process.cwd(), '');
+      if (env.SERPAPI_KEY && !process.env.SERPAPI_KEY) process.env.SERPAPI_KEY = env.SERPAPI_KEY;
+      server.middlewares.use('/api/jobs', async (req, res) => {
+        const { default: handler } = await import('./api/jobs.js');
+        await handler(req, res);
+      });
+    }
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
     googleTtsProxyPlugin(),
+    jobsApiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
@@ -105,7 +123,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        navigateFallbackDenylist: [/^\/__tts/, /^\/__health/],
+        navigateFallbackDenylist: [/^\/__tts/, /^\/__health/, /^\/api\//],
         runtimeCaching: [
           {
             // Ilustrações da newsletter: fora do precache, guardadas quando vistas pela 1ª vez.
