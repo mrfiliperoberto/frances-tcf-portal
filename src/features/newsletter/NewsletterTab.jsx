@@ -7,14 +7,15 @@ import {
   Plus,
   Sparkles,
   Clock,
-  BookOpen,
   Languages
 } from 'lucide-react';
 import { NEWSLETTER_SEED } from '../../data/newsletterSeed';
 import { useFrenchAudio } from '../../hooks/useFrenchAudio';
+import { ArticlePicker, filterArticlesByLevel } from './ArticlePicker';
 
 export function NewsletterTab({ onAddCard, onShowToast }) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedId, setSelectedId] = useState(NEWSLETTER_SEED[0]?.id);
+  const [levelFilter, setLevelFilter] = useState('Todos');
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState(null);
   const [pinnedSegmentIndex, setPinnedSegmentIndex] = useState(0);
   const [autoSpeakOnHover, setAutoSpeakOnHover] = useState(false);
@@ -22,7 +23,23 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
 
   const { speakText, stopSpeaking } = useFrenchAudio();
 
-  const currentArticle = NEWSLETTER_SEED[selectedIndex] || NEWSLETTER_SEED[0];
+  const currentArticle =
+    NEWSLETTER_SEED.find((article) => article.id === selectedId) || NEWSLETTER_SEED[0];
+
+  const selectArticle = (articleId) => {
+    stopSpeaking();
+    setSelectedId(articleId);
+    setHoveredSegmentIndex(null);
+    setPinnedSegmentIndex(0);
+  };
+
+  const handleLevelChange = (level) => {
+    setLevelFilter(level);
+    const visible = filterArticlesByLevel(NEWSLETTER_SEED, level);
+    if (visible.length > 0 && !visible.some((article) => article.id === currentArticle.id)) {
+      selectArticle(visible[0].id);
+    }
+  };
   const activeSegmentIndex =
     hoveredSegmentIndex !== null ? hoveredSegmentIndex : pinnedSegmentIndex;
   const activeSegment =
@@ -105,37 +122,17 @@ export function NewsletterTab({ onAddCard, onShowToast }) {
           </p>
         </div>
 
-        {/* Barra de Controles e Seletor de Edições */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Abas de Notícias */}
-          <div className="flex flex-wrap items-center gap-2">
-            {NEWSLETTER_SEED.map((article, idx) => {
-              const isSelected = idx === selectedIndex;
-              return (
-                <button
-                  key={article.id}
-                  type="button"
-                  onClick={() => {
-                    stopSpeaking();
-                    setSelectedIndex(idx);
-                    setHoveredSegmentIndex(null);
-                    setPinnedSegmentIndex(0);
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                    isSelected
-                      ? 'bg-red-700 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>
-                    Matéria {idx + 1}: {article.category}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Seletor de Edições: filtro por nível + cards */}
+        <ArticlePicker
+          articles={NEWSLETTER_SEED}
+          selectedId={currentArticle.id}
+          levelFilter={levelFilter}
+          onLevelChange={handleLevelChange}
+          onSelect={selectArticle}
+        />
 
+        {/* Barra de Controles */}
+        <div className="flex flex-wrap items-center justify-end gap-4">
           {/* Controles de Áudio no Hover e Tradução */}
           <div className="flex flex-wrap items-center gap-2">
             <button
