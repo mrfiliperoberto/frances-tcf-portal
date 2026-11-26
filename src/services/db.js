@@ -104,7 +104,7 @@ db.version(8).stores({
  *   que só custavam espaço/tempo de escrita e nunca eram consultados.
  * - Nenhum registro é apagado ou reescrito de forma destrutiva.
  *
- * A versão 10 está RESERVADA para a store `voiceRecordings` (Fase 2). Não declarar aqui.
+ * A versão 10 (logo abaixo) adiciona a store `voiceRecordings`.
  */
 export const DB_NAME = 'ZeroAoCanadaDB';
 export const PHASE1_DB_VERSION = 9;
@@ -157,6 +157,19 @@ db.version(PHASE1_DB_VERSION)
       throw err;
     }
   });
+
+/**
+ * v10 — gravações de voz da Biblioteca de Pronúncia.
+ *
+ * Só ADICIONA a store `voiceRecordings`; nenhuma store existente é alterada e não há `.upgrade()`.
+ * Cada registro guarda o áudio como ArrayBuffer (`audio`) + `mimeType`, a palavra (`wordId`, `word`)
+ * e o momento da gravação (`recordedAt`, ISO 8601 em UTC). Acesso via services/voiceRecordings.js.
+ */
+export const VOICE_RECORDINGS_DB_VERSION = 10;
+
+db.version(VOICE_RECORDINGS_DB_VERSION).stores({
+  voiceRecordings: '++id, wordId, recordedAt, source'
+});
 
 /**
  * Estado observável da abertura do banco, para a UI de recuperação.
