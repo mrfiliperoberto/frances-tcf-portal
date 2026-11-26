@@ -11,7 +11,8 @@ import {
   Search,
   Filter,
   Headphones,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { PRONUNCIATION_DICT } from '../../data/pronunciationDict';
 import { db, syncDailyDictionarySeed } from '../../services/db';
@@ -27,6 +28,7 @@ import {
   formatRecordingDateTime
 } from '../../services/voiceRecordings';
 import { RecordingHistory } from './RecordingHistory';
+import { downloadRecordingsZip } from '../../services/recordingsExport';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const PRONUNCIATION_LEVELS = ['Todos', 'A1', 'A2', 'B1', 'B2'];
@@ -196,6 +198,30 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
   const lastSavedBlobRef = useRef(null);
   // Incrementado quando uma gravação é salva ou avaliada, para o histórico aberto recarregar
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
+
+  const [isExportingZip, setIsExportingZip] = useState(false);
+  const totalRecordings = useMemo(
+    () => Array.from(recordCounts.values()).reduce((sum, n) => sum + n, 0),
+    [recordCounts]
+  );
+
+  const handleDownloadRecordingsZip = async () => {
+    setIsExportingZip(true);
+    try {
+      const count = await downloadRecordingsZip();
+      if (onShowToast) {
+        onShowToast(
+          count > 0 ? `📦 ${count} gravação(ões) exportada(s) em .zip.` : 'Nenhuma gravação salva ainda.',
+          count > 0 ? 'success' : 'error'
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao exportar gravações em .zip:', err);
+      if (onShowToast) onShowToast('Não foi possível gerar o .zip das gravações.', 'error');
+    } finally {
+      setIsExportingZip(false);
+    }
+  };
 
   const handleRecordingDeleted = useCallback((wordId) => {
     setRecordCounts((prev) => {
@@ -572,8 +598,27 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
           </p>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+        {/* Exportar todas as gravações (.zip com os áudios + gravacoes.csv) */}
+        <button
+          type="button"
+          onClick={handleDownloadRecordingsZip}
+          disabled={totalRecordings === 0 || isExportingZip}
+          title={
+            totalRecordings === 0
+              ? 'Grave alguma palavra para poder baixar'
+              : 'Baixa um .zip com todos os seus áudios (uma pasta por palavra) e uma planilha gravacoes.csv'
+          }
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:border-rose-500/50 hover:text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>
+            {isExportingZip ? 'Gerando .zip…' : `Baixar minhas gravações (${totalRecordings})`}
+          </span>
+        </button>
+
         {/* Indicador de Status da API Gemini */}
-        <div className="flex items-center gap-2 self-start lg:self-auto px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold">
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold">
           <span
             className={`w-2.5 h-2.5 rounded-full ${
               hasApiKey ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
@@ -582,6 +627,7 @@ export function PronunciationLibraryTab({ onAddCard, onShowToast }) {
           <span className="text-slate-700 dark:text-slate-300">
             {hasApiKey ? 'Avaliador Fonético Gemini Ativo' : 'Modo Demonstrativo (Sem Chave)'}
           </span>
+        </div>
         </div>
       </div>
 

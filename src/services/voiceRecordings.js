@@ -72,6 +72,12 @@ export async function getRecordingsForWord(wordId) {
   return rows.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
 }
 
+/** Todas as gravações, da mais antiga para a mais recente (usado na exportação .zip). */
+export async function getAllRecordings() {
+  await ensureDbOpen();
+  return db.voiceRecordings.orderBy('recordedAt').toArray();
+}
+
 /** Mapa wordId → quantidade de gravações salvas (lê só o índice, sem carregar os áudios). */
 export async function countRecordingsByWord() {
   await ensureDbOpen();
