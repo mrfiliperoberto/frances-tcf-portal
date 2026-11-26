@@ -9,6 +9,15 @@ async function blobToArrayBuffer(blob) {
   return new Response(blob).arrayBuffer();
 }
 
+/** "25/11/2026 às 23:14" no fuso local do aparelho. */
+export function formatRecordingDateTime(isoString) {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '';
+  const day = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${day} às ${time}`;
+}
+
 /** Recria um Blob tocável a partir de um registro salvo. */
 export function recordingToBlob(recording) {
   if (!recording?.audio) return null;

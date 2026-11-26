@@ -110,6 +110,14 @@ describe('voiceRecordings service', () => {
     dbMod.db.close();
   });
 
+  it('formats the recording date and time in pt-BR', async () => {
+    const rec = await import('../src/services/voiceRecordings.js');
+    expect(rec.formatRecordingDateTime('2026-11-25T23:14:05.000Z')).toMatch(
+      /^\d{2}\/\d{2}\/\d{4} às \d{2}:\d{2}$/
+    );
+    expect(rec.formatRecordingDateTime('not a date')).toBe('');
+  });
+
   it('requestPersistentStorage returns null without support and the browser answer otherwise', async () => {
     const rec = await import('../src/services/voiceRecordings.js');
     vi.stubGlobal('navigator', {});
