@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import Sidebar from './components/layout/Sidebar';
 import DailyDashboard from './features/dashboard/DailyDashboard';
 import NewsletterTab from './features/newsletter/NewsletterTab';
+import JobAlertsTab from './features/jobs/JobAlertsTab';
 import TodayTab from './features/today/TodayTab';
 import AITutorTab from './features/ai-tutor/AITutorTab';
 import ShadowingStudio from './features/shadowing/ShadowingStudio';
@@ -332,6 +333,12 @@ export function App() {
                 onAddCard={handleAddCard}
                 onShowToast={showToast}
               />
+            </div>
+          )}
+
+          {activeTab === 'vagas' && (
+            <div key="vagas" id="tab-vagas">
+              <JobAlertsTab onShowToast={showToast} />
             </div>
           )}
 

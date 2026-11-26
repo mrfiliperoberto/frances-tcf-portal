@@ -4,6 +4,23 @@ const fs = require('fs');
 const path = require('path');
 const { parseAllowedTtsUrl } = require('./tts-proxy-guard.cjs');
 
+/**
+ * Carrega SERPAPI_KEY (opcional, Google Jobs no Alerta de Vagas) de .env.local / .env, sem
+ * imprimir nada. Só essa variável é lida; o arquivo nunca é servido (não está em dist/).
+ */
+function loadServerEnv() {
+  for (const file of ['.env.local', '.env']) {
+    try {
+      const text = fs.readFileSync(path.join(__dirname, file), 'utf-8');
+      const match = text.match(/^\s*SERPAPI_KEY\s*=\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (match && !process.env.SERPAPI_KEY) process.env.SERPAPI_KEY = match[1].trim();
+    } catch {
+      // arquivo ausente: tudo bem
+    }
+  }
+}
+loadServerEnv();
+
 const PORT = Number(process.env.PORT || 5173);
 const DIST_DIR = path.join(__dirname, 'dist');
 const PID_FILE = path.join(__dirname, '.server.pid');
@@ -34,6 +51,18 @@ const server = http.createServer((req, res) => {
     if (pathname === '/__health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', pid: process.pid }));
+      return;
+    }
+
+    // Alerta de Vagas: mesmo handler da função do Vercel (api/jobs.js, módulo ES)
+    if (pathname === '/api/jobs') {
+      const { pathToFileURL } = require('url');
+      import(pathToFileURL(path.join(__dirname, 'api', 'jobs.js')).href)
+        .then(({ default: handler }) => handler(req, res))
+        .catch(() => {
+          if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'jobs-unavailable' }));
+        });
       return;
     }
 

@@ -172,6 +172,23 @@ db.version(VOICE_RECORDINGS_DB_VERSION).stores({
 });
 
 /**
+ * v11 — Alerta de Vagas.
+ *
+ * Só ADICIONA stores; nada existente é alterado e não há `.upgrade()`.
+ * - `jobProfile`: perfil de busca (texto do currículo, trilhas, preferências) e metadados da
+ *   última busca. Fica apenas neste aparelho. Chave: `id` ('default').
+ * - `jobPostings`: vagas recebidas. Chave: `id` ("<fonte>:<id na fonte>"). `firstSeenAt` marca
+ *   as vagas novas; `status` guarda o acompanhamento (new, saved, applied, interview, dismissed).
+ * Acesso via services/jobsStore.js.
+ */
+export const JOB_ALERTS_DB_VERSION = 11;
+
+db.version(JOB_ALERTS_DB_VERSION).stores({
+  jobProfile: 'id',
+  jobPostings: 'id, source, postedAt, firstSeenAt, status'
+});
+
+/**
  * Estado observável da abertura do banco, para a UI de recuperação.
  * state: 'idle' | 'opening' | 'ready' | 'error'
  */
