@@ -197,7 +197,7 @@ export function DashboardTab({ onNavigateTab, fallbackStreak = 0 }) {
     {
       id: 'videoaula',
       step: 'Missão 04',
-      title: 'Videoaula e Fechamento',
+      title: 'Teoria em Vídeo',
       subtitle: 'Aula técnica + foto do caderno físico para encerrar o dia',
       icon: GraduationCap,
       done: missionStatus.videoaula
@@ -287,7 +287,7 @@ export function DashboardTab({ onNavigateTab, fallbackStreak = 0 }) {
           <p className="text-xs text-zinc-300 leading-relaxed">
             {missionStatus.videoaula
               ? '✅ Sua sessão de hoje já foi registrada com foto do caderno!'
-              : 'Encerre a sessão na aba "Videoaula e Fechamento" hoje para ampliar sua sequência.'}
+              : 'Encerre a sessão na aba "Teoria em Vídeo" hoje para ampliar sua sequência.'}
           </p>
         </div>
       </section>
