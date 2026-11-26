@@ -127,3 +127,55 @@ describe('voiceRecordings service', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('voice recordings in backups', () => {
+  it('JSON export keeps the audio bytes (base64) and restores them with the reviver', async () => {
+    const { dbMod, rec } = await loadModules();
+    const bytes = new Uint8Array(70_000).map((_, i) => i % 251);
+    await rec.saveVoiceRecording({
+      wordId: 'dict_200',
+      word: 'abandonner',
+      blob: new Blob([bytes], { type: 'audio/webm' }),
+      durationSec: 2,
+      recordedAt: new Date('2026-11-25T23:14:05Z')
+    });
+    dbMod.db.close();
+
+    const backup = await import('../src/services/dbBackup.js');
+    const data = await backup.exportRawDatabase('ZeroAoCanadaDB');
+    const json = backup.serializeDatabaseExport(data);
+
+    const raw = JSON.parse(json);
+    const exported = raw.stores.voiceRecordings.records[0].value;
+    expect(exported.recordedAt).toBe('2026-11-25T23:14:05.000Z');
+    expect(exported.audio).toMatchObject({ __type: 'ArrayBuffer', encoding: 'base64' });
+    expect(exported.audio.data.length).toBeGreaterThan(90_000);
+
+    const restored = JSON.parse(json, backup.binaryJsonReviver);
+    const audio = restored.stores.voiceRecordings.records[0].value.audio;
+    expect(audio).toBeInstanceOf(ArrayBuffer);
+    expect(new Uint8Array(audio)).toEqual(bytes);
+  });
+
+  it('replacer leaves non-binary values untouched and handles typed arrays', async () => {
+    const backup = await import('../src/services/dbBackup.js');
+    const json = JSON.stringify({ a: 1, b: 'x', c: [true], d: new Uint8Array([1, 2, 3]) }, backup.binaryJsonReplacer);
+    const back = JSON.parse(json, backup.binaryJsonReviver);
+    expect(back.a).toBe(1);
+    expect(back.b).toBe('x');
+    expect(back.c).toEqual([true]);
+    expect(Array.from(new Uint8Array(back.d))).toEqual([1, 2, 3]);
+  });
+
+  it('pre-migration snapshots keep the recordings audio', async () => {
+    const { dbMod, rec } = await loadModules();
+    await rec.saveVoiceRecording({ wordId: 'a', blob: makeBlob(512), durationSec: 1 });
+    dbMod.db.close();
+    const backup = await import('../src/services/dbBackup.js');
+    const snap = await backup.createSnapshot('ZeroAoCanadaDB', { reason: 'test' });
+    expect(snap.counts.voiceRecordings).toBe(1);
+    const full = await backup.getSnapshot(snap.id);
+    const audio = full.data.stores.voiceRecordings.records[0].value.audio;
+    expect(audio.byteLength).toBe(512);
+  });
+});

@@ -222,14 +222,66 @@ export async function getSnapshot(id) {
   }
 }
 
+const BINARY_JSON_TYPE = 'ArrayBuffer';
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/**
+ * Replacer do JSON.stringify: dados binários (ex.: áudio das gravações em voiceRecordings)
+ * viram `{ __type: 'ArrayBuffer', encoding: 'base64', data }` em vez de `{}`.
+ */
+export function binaryJsonReplacer(_key, value) {
+  if (value instanceof ArrayBuffer) {
+    return { __type: BINARY_JSON_TYPE, encoding: 'base64', data: bytesToBase64(new Uint8Array(value)) };
+  }
+  if (ArrayBuffer.isView(value)) {
+    const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    return { __type: BINARY_JSON_TYPE, encoding: 'base64', data: bytesToBase64(bytes) };
+  }
+  return value;
+}
+
+/** Reviver do JSON.parse: inverso de `binaryJsonReplacer` (para restaurar um backup). */
+export function binaryJsonReviver(_key, value) {
+  if (
+    value &&
+    typeof value === 'object' &&
+    value.__type === BINARY_JSON_TYPE &&
+    value.encoding === 'base64' &&
+    typeof value.data === 'string'
+  ) {
+    return base64ToArrayBuffer(value.data);
+  }
+  return value;
+}
+
+/** Serializa um export do banco preservando os dados binários. */
+export function serializeDatabaseExport(data) {
+  return JSON.stringify(data, binaryJsonReplacer, 2);
+}
+
 /**
  * Exporta o banco atual como JSON e dispara o download no navegador.
- * Funciona mesmo quando o Dexie não consegue abrir o banco.
+ * Inclui os áudios das gravações (base64). Funciona mesmo quando o Dexie não consegue abrir o banco.
  */
 export async function downloadDatabaseAsJson(name) {
   const data = await exportRawDatabase(name);
   if (!data) throw new Error('Nenhum banco local encontrado para exportar.');
-  const json = JSON.stringify(data, null, 2);
+  const json = serializeDatabaseExport(data);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');

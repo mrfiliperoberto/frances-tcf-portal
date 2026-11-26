@@ -246,7 +246,7 @@ export function SettingsModal({ isOpen, onClose, onShowToast }) {
           {/* Backup manual dos dados locais (IndexedDB) */}
           <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between gap-3">
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              Backup dos seus dados de estudo (palavras, cartões, histórico, sessões). Um snapshot automático também é criado antes de cada atualização do banco.
+              Backup dos seus dados de estudo (palavras, cartões, histórico, sessões e gravações de pronúncia com data e hora). Um snapshot automático também é criado antes de cada atualização do banco.
             </p>
             <button
               type="button"
