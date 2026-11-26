@@ -314,6 +314,64 @@ function flattenCartoonSprints(sprints = CARTOON_SPRINTS_SEED) {
 }
 
 /**
+ * Sincroniza uma store de CONTEÚDO (cópia de uma seed, sem dados do usuário) com a seed atual:
+ * - registros da seed entram ou são atualizados (título, URL, dia, nível...);
+ * - `preserveFields` com valor no registro existente são mantidos (ex.: isCompleted);
+ * - registros antigos com o mesmo prefixo de id que saíram da seed são removidos, para não
+ *   sobrar um vídeo antigo no mesmo dia. Registros com outro prefixo (criados pelo usuário) ficam.
+ * Retorna { upserted, removed }.
+ */
+export async function syncSeedStore(table, seedRecords, { idPrefix, preserveFields = [] } = {}) {
+  const seedIds = new Set(seedRecords.map((r) => r.id));
+  const existing = await table.bulkGet(seedRecords.map((r) => r.id));
+  const merged = seedRecords.map((record, i) => {
+    const old = existing[i];
+    if (!old) return record;
+    const kept = {};
+    preserveFields.forEach((field) => {
+      if (old[field]) kept[field] = old[field];
+    });
+    return { ...old, ...record, ...kept };
+  });
+
+  let removed = 0;
+  await db.transaction('rw', table, async () => {
+    await table.bulkPut(merged);
+    if (idPrefix) {
+      const orphanIds = (await table.toCollection().primaryKeys()).filter(
+        (id) => typeof id === 'string' && id.startsWith(idPrefix) && !seedIds.has(id)
+      );
+      removed = orphanIds.length;
+      if (orphanIds.length > 0) await table.bulkDelete(orphanIds);
+    }
+  });
+  return { upserted: merged.length, removed };
+}
+
+let contentSyncPromise = null;
+
+/** Sincroniza Daily Cartoon e Teoria em Vídeo com as seeds (uma vez por sessão). */
+export function syncContentSeeds() {
+  if (!contentSyncPromise) {
+    contentSyncPromise = (async () => {
+      await ensureDbOpen();
+      const cartoon = await syncSeedStore(db.cartoonEpisodes, flattenCartoonSprints(CARTOON_SPRINTS_SEED), {
+        idPrefix: 'c_s'
+      });
+      const lessons = await syncSeedStore(db.videoLessons, VIDEO_LESSON_SEED, {
+        idPrefix: 'vl_',
+        preserveFields: ['isCompleted']
+      });
+      return { cartoon, lessons };
+    })().catch((err) => {
+      contentSyncPromise = null; // permite nova tentativa
+      throw err;
+    });
+  }
+  return contentSyncPromise;
+}
+
+/**
  * Normaliza um item do DAILY_DICTIONARY_SEED garantindo que todos os campos default
  * (`isMastered: false`, `reviewDates: []`, `studiedAt: null`, `estudado: false`) estejam presentes.
  */
@@ -521,23 +579,14 @@ export async function initDatabase() {
       }
     }
 
-    // 4. Sincroniza os episódios de Sprints do Daily Cartoon (cartoonEpisodes)
-    const cartoonCount = await db.cartoonEpisodes.count();
-    if (cartoonCount === 0) {
-      const flattenedEpisodes = flattenCartoonSprints(CARTOON_SPRINTS_SEED);
-      await db.cartoonEpisodes.bulkPut(flattenedEpisodes);
-    }
+    // 4 e 6. Sincroniza Daily Cartoon (cartoonEpisodes) e Teoria em Vídeo (videoLessons) com as seeds
+    // (erro aqui não impede os passos seguintes)
+    await syncContentSeeds().catch((err) => console.error('Erro ao sincronizar vídeos com as seeds:', err));
 
     // 5. Inicializa os capítulos da Leitura Guiada (guidedReading)
     const guidedCount = await db.guidedReading.count();
     if (guidedCount === 0) {
       await db.guidedReading.bulkPut(LITTLE_PRINCE_SEED);
-    }
-
-    // 6. Inicializa as videoaulas de gramática/técnica (videoLessons)
-    const videoLessonsCount = await db.videoLessons.count();
-    if (videoLessonsCount === 0) {
-      await db.videoLessons.bulkPut(VIDEO_LESSON_SEED);
     }
   } catch (err) {
     console.error('Erro ao inicializar Dexie IndexedDB:', err);
@@ -978,10 +1027,7 @@ export async function getAllCartoonEpisodes() {
   const flattened = flattenCartoonSprints(CARTOON_SPRINTS_SEED);
   try {
     await ensureDbOpen();
-    const count = await db.cartoonEpisodes.count();
-    if (count === 0) {
-      await db.cartoonEpisodes.bulkPut(flattened);
-    }
+    await syncContentSeeds();
   } catch {
     // fallback silencioso para lista em memória
   }
@@ -1057,10 +1103,7 @@ export async function completeGuidedReadingChapter(chapterId, isCompleted = true
 export async function getAllVideoLessons() {
   try {
     await ensureDbOpen();
-    const count = await db.videoLessons.count();
-    if (count === 0) {
-      await db.videoLessons.bulkPut(VIDEO_LESSON_SEED);
-    }
+    await syncContentSeeds();
     return await db.videoLessons.toArray();
   } catch {
     return VIDEO_LESSON_SEED;
