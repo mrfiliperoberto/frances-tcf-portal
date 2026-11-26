@@ -78,6 +78,22 @@ export function buildGoogleTtsUrl(text, lang = 'fr-CA') {
   );
 }
 
+/**
+ * For a Google Translate TTS URL returns its text (`q`, possibly ''); for any other or invalid
+ * URL returns null. Lets seed data that stores Google TTS URLs go through playFrench.
+ */
+export function extractGoogleTtsText(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'translate.google.com' && parsed.pathname === '/translate_tts') {
+      return parsed.searchParams.get('q') || '';
+    }
+  } catch {
+    // relative or invalid URL: not Google TTS
+  }
+  return null;
+}
+
 export function buildProxyTtsUrl(text, lang = 'fr-CA') {
   return `/__tts?url=${encodeURIComponent(buildGoogleTtsUrl(text, lang))}`;
 }

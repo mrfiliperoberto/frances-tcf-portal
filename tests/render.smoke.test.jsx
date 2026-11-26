@@ -25,6 +25,11 @@ describe('Renderização (SSR smoke test)', () => {
     expect(renderToString(<ReviewsDueCard summary={{ words: [], cards: [] }} />)).toContain('em dia');
   });
 
+  it('DailyDictionaryTab renderiza (usa o ttsService)', async () => {
+    const { DailyDictionaryTab } = await import('../src/features/dictionary/DailyDictionaryTab.jsx');
+    expect(() => renderToString(<DailyDictionaryTab />)).not.toThrow();
+  });
+
   it('DatabaseRecoveryBanner e SettingsModal renderizam', async () => {
     const { DatabaseRecoveryBanner } = await import('../src/components/common/DatabaseRecoveryBanner.jsx');
     const html = renderToString(
