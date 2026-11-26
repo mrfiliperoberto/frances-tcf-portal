@@ -8,8 +8,9 @@ export const NEWSLETTER_SEED = [
     edition: 'Édition N° 42 • Montréal & Québec',
     date: 'Novembre 2026',
     category: 'Société & Innovation',
-    level: 'B1 • B2',
+    level: 'B2',
     readingTime: '2 min',
+    isFictional: true,
     headline_fr: "Le Québec accélère l'accueil des talents francophones dans les technologies vertes",
     headline_pt: 'O Québec acelera o acolhimento de talentos francófonos nas tecnologias verdes',
     subheadline_fr:
@@ -72,8 +73,9 @@ export const NEWSLETTER_SEED = [
     edition: 'Édition N° 42 • Culture & Vie Quotidienne',
     date: 'Novembre 2026',
     category: 'Culture & Éducation',
-    level: 'A2 • B2',
+    level: 'B1',
     readingTime: '3 min',
+    isFictional: true,
     headline_fr: "Les bibliothèques publiques de Montréal battent un record de fréquentation",
     headline_pt: 'As bibliotecas públicas de Montreal batem recorde de frequência',
     subheadline_fr:
@@ -122,8 +124,12 @@ export const NEWSLETTER_SEED = [
         pt: 'e de descobrir as expressões québécoises",'
       },
       {
-        fr: 'explique une participante enthousiaste.',
-        pt: 'explica uma participante entusiasmada.'
+        fr: 'explique une participante enthousiaste,',
+        pt: 'explica uma participante entusiasmada,'
+      },
+      {
+        fr: 'arrivée à Montréal l’an dernier.',
+        pt: 'que chegou a Montreal no ano passado.'
       }
     ]
   }
